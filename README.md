@@ -101,7 +101,7 @@ The web app serves the XGBoost forecaster + residual anomaly detector:
 - **REST API** — `/api/forecast`, `/api/anomaly`, `/api/history`, `/api/models`, `/api/health`
 
 One-click: push this repo to GitHub → [render.com](https://render.com) →
-**New → Blueprint** → select the repo (the `web/render.yaml` blueprint configures
+**New → Blueprint** → select the repo (the `repo-root render.yaml (service rootDir: web)` blueprint configures
 build, start command, and health check). Free tier (512 MB RAM) is sufficient —
 the app loads only a 0.8 MB model plus 5 MB of data and needs no GPU/DL runtime.
 
