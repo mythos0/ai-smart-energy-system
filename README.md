@@ -150,11 +150,13 @@ curl -X POST http://localhost:5000/api/forecast \
 ## Citation
 
 ```bibtex
-@misc{mythos02026smartenergy,
-  author = {Mythos0},
+@misc{hossen2026smartenergy,
+  author = {Tamim Hossen, MD and Sarkar, Md Emon and Hasan, MD. Montasir and
+            Ratul, MD. Sheratul Muntahar and Nisha, Afrina},
   title  = {AI-Based Smart Electricity Consumption Prediction and Anomaly Detection:
             A Benchmark Study and Deployable Web System},
   year   = {2026},
+  howpublished = {Department of CSE, Dhaka International University},
   url    = {https://github.com/mythos0/ai-smart-energy-system}
 }
 ```
