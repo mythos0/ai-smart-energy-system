@@ -100,10 +100,25 @@ The web app serves the XGBoost forecaster + residual anomaly detector:
 - **Models tab** — both benchmark leaderboards
 - **REST API** — `/api/forecast`, `/api/anomaly`, `/api/history`, `/api/models`, `/api/health`
 
-One-click: push this repo to GitHub → [render.com](https://render.com) →
-**New → Blueprint** → select the repo (the `repo-root render.yaml (service rootDir: web)` blueprint configures
-build, start command, and health check). Free tier (512 MB RAM) is sufficient —
-the app loads only a 0.8 MB model plus 5 MB of data and needs no GPU/DL runtime.
+[![Deploy to Render](https://render.com/images/deploy-button.svg)](https://dashboard.render.com/select-repo?type=web&repo=https%3A%2F%2Fgithub.com%2Fmythos0%2Fai-smart-energy-system)
+
+**Option A — Blueprint (recommended, fully automatic).** In the Render dashboard:
+**New → Blueprint** → select this repo → **Apply**. The repo-root `render.yaml`
+(service `rootDir: web`) configures the build, start command, and health check
+automatically. Free tier (512 MB RAM) is sufficient — the app loads only a 0.8 MB
+model plus 5 MB of data and needs no GPU/DL runtime.
+
+**Option B — New Web Service (manual).** Render dashboard → **New → Web Service** →
+paste the public repo URL, then set:
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `web` |
+| Runtime | Python 3 |
+| Build command | `pip install -r requirements.txt` |
+| Start command | `gunicorn app:app --workers 1 --threads 4 --timeout 120` |
+| Health check path | `/api/health` |
+| Instance type | Free |
 
 Local run:
 
