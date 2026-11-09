@@ -23,11 +23,12 @@
     .label { position: absolute; top: 132px; font-size: 9pt; color: var(--c-accent); letter-spacing: 3px; text-transform: uppercase; font-family: 'Inter', sans-serif; }
     .title { position: absolute; top: 210px; font-size: 31pt; font-weight: 700; line-height: 1.32; font-family: 'Playfair Display', serif; color: var(--c-text); max-width: 600px; }
     .subtitle { position: absolute; top: 560px; font-size: 12.5pt; line-height: 1.55; color: var(--c-muted); max-width: 520px; }
-    .meta { position: absolute; top: 730px; font-size: 10.5pt; line-height: 1.9; color: var(--c-muted); }
     .meta .k { color: var(--c-accent); font-size: 8.5pt; letter-spacing: 1.5px; text-transform: uppercase; display: inline-block; width: 118px; }
     .meta .v { color: var(--c-text); }
-    .authors { position: absolute; top: 690px; font-size: 12.5pt; color: var(--c-text); font-weight: 500; }
-    .institution { position: absolute; top: 716px; font-size: 10pt; color: var(--c-muted); }
+    .authors { position: absolute; top: 664px; font-size: 11pt; line-height: 1.65; color: var(--c-text); font-weight: 500; max-width: 610px; }
+    .institution { position: absolute; top: 734px; font-size: 10pt; color: var(--c-muted); max-width: 610px; line-height: 1.5; }
+    .supervisor { position: absolute; top: 772px; font-size: 9.5pt; color: var(--c-muted); font-style: italic; max-width: 610px; }
+    .meta { position: absolute; top: 822px; font-size: 10.5pt; line-height: 1.75; color: var(--c-muted); }
     .footer { position: absolute; bottom: 76px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 9pt; color: var(--c-footer); }
   </style>
 </head>
@@ -40,8 +41,9 @@
       <div class="subtitle">A benchmark study and deployable web system on four years of household
         meter data &mdash; eight forecasting models, four anomaly detectors, and a
         one-click deployment of the best pipeline.</div>
-      <div class="authors">Mythos0</div>
-      <div class="institution">Independent Researcher</div>
+      <div class="authors">MD Tamim Hossen &middot; Md Emon Sarkar &middot; MD. Montasir Hasan<br>MD. Sheratul Muntahar Ratul &middot; Afrina Nisha</div>
+      <div class="institution">Department of Computer Science and Engineering<br>Dhaka International University, Dhaka, Bangladesh</div>
+      <div class="supervisor">Supervisor: Paritosh Chandra Ray, Lecturer, Dept. of CSE, DIU</div>
       <div class="meta">
         <div><span class="k">Dataset</span> <span class="v">UCI Individual Household Electric Power Consumption (2006&ndash;2010)</span></div>
         <div><span class="k">Best model</span> <span class="v">XGBoost &middot; RMSE 0.588 kW &middot; +22.4% skill over seasonal naive</span></div>
