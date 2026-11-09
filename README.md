@@ -152,7 +152,7 @@ curl -X POST http://localhost:5000/api/forecast \
 ```bibtex
 @misc{hossen2026smartenergy,
   author = {Tamim Hossen, MD and Sarkar, Md Emon and Hasan, MD. Montasir and
-            Ratul, MD. Sheratul Muntahar and Nisha, Afrina},
+            Muntaha, Sidratul and Shahriar, Shorov},
   title  = {AI-Based Smart Electricity Consumption Prediction and Anomaly Detection:
             A Benchmark Study and Deployable Web System},
   year   = {2026},
