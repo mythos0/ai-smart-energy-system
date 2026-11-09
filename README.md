@@ -1,5 +1,8 @@
 # AI-Based Smart Electricity Consumption Prediction & Anomaly Detection System
 
+**Live demo: <https://ai-smart-energy-system-w4tx.onrender.com>**
+(Flask + Chart.js dashboard: interactive forecasts, anomaly view, model leaderboard, REST API)
+
 An end-to-end machine learning system for **day-ahead household electricity
 forecasting** and **anomaly detection**, built on the
 [UCI Individual Household Electric Power Consumption dataset](https://archive.ics.uci.edu/dataset/235/individual+household+electric+power+consumption)
