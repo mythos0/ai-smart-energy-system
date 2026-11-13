@@ -139,13 +139,13 @@ footer a{color:var(--teal);font-weight:600;white-space:nowrap}
   <!-- input -->
   <section class="card side">
     <div class="side-head"><h2>Your usage</h2><span class="unit">kWh</span></div>
-    <p class="hint">Enter the units from your last 4 monthly electricity bills, then press Predict.</p>
+    <p class="hint">Enter the units (kWh) from your last 4 monthly bills — <b>1st</b> is the oldest, <b>4th</b> is the latest month. Then press Predict.</p>
     <form id="f">
       <div class="mgrid">
-        <label><b id="lb1">…</b><input id="m1" type="number" min="1" max="50000" step="1" value="220" inputmode="numeric" required></label>
-        <label><b id="lb2">…</b><input id="m2" type="number" min="1" max="50000" step="1" value="210" inputmode="numeric" required></label>
-        <label><b id="lb3">…</b><input id="m3" type="number" min="1" max="50000" step="1" value="230" inputmode="numeric" required></label>
-        <label><b id="lb4">…</b><input id="m4" type="number" min="1" max="50000" step="1" value="240" inputmode="numeric" required></label>
+        <label><b id="lb1">1st month</b><input id="m1" type="number" min="1" max="50000" step="1" value="220" inputmode="numeric" required></label>
+        <label><b id="lb2">2nd month</b><input id="m2" type="number" min="1" max="50000" step="1" value="210" inputmode="numeric" required></label>
+        <label><b id="lb3">3rd month</b><input id="m3" type="number" min="1" max="50000" step="1" value="230" inputmode="numeric" required></label>
+        <label><b id="lb4">4th month</b><input id="m4" type="number" min="1" max="50000" step="1" value="240" inputmode="numeric" required></label>
       </div>
       <div class="controls">
         <label class="kw">Load
@@ -211,11 +211,14 @@ const $ = id => document.getElementById(id);
 const taka = n => '৳' + Math.round(n).toLocaleString('en-US');
 const SHORT = {'Linear Regression':'LR','SVM':'SVM','Random Forest':'RF','Decision Tree':'DT'};
 
-/* month labels: m1 = 3 months back ... m4 = current month */
+/* month labels: 1st = oldest bill ... 4th = latest (current) month */
 (function(){
-  const lab = n => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - n);
-                     return d.toLocaleString('en', {month:'short'}); };
-  ['lb1','lb2','lb3','lb4'].forEach((id, i) => $(id).textContent = lab(3 - i));
+  const monthOf = n => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - n);
+                         return d.toLocaleString('en', {month:'short', year:'numeric'}); };
+  ['lb1','lb2','lb3','lb4'].forEach((id, i) => {
+    const what = i === 0 ? ' · oldest bill' : (i === 3 ? ' · latest bill' : '');
+    $(id).closest('label').title = (i + 1) + ['st','nd','rd','th'][i] + ' month — ' + monthOf(3 - i) + what;
+  });
 })();
 
 async function postJSON(url, body){
@@ -375,7 +378,7 @@ function render(r){
   $('s2s').textContent = '≈ ৳' + r.bill.per_unit.toFixed(2) + ' per unit · incl. VAT';
 
   const a = r.anomaly, s3v = $('s3v');
-  $('s3l').textContent = 'Check · ' + r.labels.m4;
+  $('s3l').textContent = 'Check · ' + r.checked_short;
   s3v.textContent = a.verdict === 'normal' ? 'Normal'
                   : a.verdict === 'high' ? 'Unusual HIGH' : 'Unusual LOW';
   s3v.className = 'v ' + (a.verdict === 'normal' ? 'ok' : 'bad');

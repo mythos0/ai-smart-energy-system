@@ -74,7 +74,8 @@ user-input model used by the web app. Outputs are saved to `web/model/`.
 
 ```bash
 # 1. train (or just use the artifacts already in web/model/)
-cd notebooks && jupyter nbconvert --to notebook --execute training_pipeline.ipynb
+cd notebooks && jupyter nbconvert --to notebook --execute --inplace training_pipeline.ipynb
+# artifacts are written to ../output/ (repo/output/)
 
 # 2. serve the web app
 cd web && pip install -r requirements.txt && python app.py

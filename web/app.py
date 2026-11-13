@@ -78,12 +78,6 @@ def bill_bdt(units, kw=1.0):
 
 
 # ----------------------------------------------------------------- monthly prediction helpers
-def month_back(n, today):
-    """(year, month) of n months before the current month."""
-    m = today.month - n
-    return today.year + (m - 1) // 12, (m - 1) % 12 + 1
-
-
 def feature_row(l1, l2, l3, month_no):
     """Scale-free feature row from the 3 months before the month being predicted."""
     base = (l1 + l2 + l3) / 3
@@ -112,18 +106,15 @@ def predict_user(m1, m2, m3, m4, kw, today):
     # 3) predicted bill for the forecast usage
     bill = bill_bdt(next_kwh, kw)
 
-    # month labels for the UI (3 back, 2 back, last, current, next)
-    _, mo3 = month_back(3, today)
-    _, mo2 = month_back(2, today)
-    _, mo1 = month_back(1, today)
+    # month labels for the UI (1st-4th bill + short names for context)
     nxt_y = today.year + (1 if today.month == 12 else 0)
 
     return {
-        "labels": {"m1": month_abbr[mo3], "m2": month_abbr[mo2],
-                   "m3": month_abbr[mo1], "m4": month_abbr[cur],
+        "labels": {"m1": "1st", "m2": "2nd", "m3": "3rd", "m4": "4th",
                    "next": month_abbr[nxt]},
         "next_name": f"{month_name[nxt]} {nxt_y}",
         "checked_name": f"{month_name[cur]} {today.year}",
+        "checked_short": month_abbr[cur],
         "inputs": {"m1": m1, "m2": m2, "m3": m3, "m4": m4, "kw": kw},
         "next_kwh": next_kwh,
         "per_model": per_model,
