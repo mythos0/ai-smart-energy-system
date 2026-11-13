@@ -10,12 +10,13 @@ latest month — all on one single screen, with no scrolling, on mobile and desk
 
 ## How it works
 
-| Step | What happens |
+| Feature | Details |
 | --- | --- |
-| 1. User input | The user types the units (kWh) of their last 4 monthly bills and their sanctioned load (kW) |
-| 2. Prediction | A scale-free monthly model predicts next month's usage from the last 3 months |
-| 3. Bill in BDT | The official Bangladesh tariff (BERC 2026, residential LT-A) is applied to the predicted usage: lifeline + slabs + ৳42/kW demand charge + 5% VAT |
-| 4. Anomaly check | The latest month is compared with the model's expectation; a residual z-score beyond ±3 is flagged as unusual HIGH or LOW |
+| User input | The user types the units (kWh) of their last 4 monthly bills and their sanctioned load (kW) |
+| Next-month prediction | Scale-free monthly model predicts next month's usage from the last 3 months |
+| Bill in BDT | The official Bangladesh tariff (BERC 2026, residential LT-A) is applied to the predicted usage: lifeline + slabs + ৳42/kW demand charge + 5% VAT |
+| Anomaly check | The latest month is compared with the model's expectation; a residual z-score beyond ±3 is flagged as unusual HIGH or LOW |
+| Evaluation figures | Chart tabs on the dashboard: **Models** (MAPE comparison of all 4 models), **Accuracy** (actual vs predicted, monthly test), **Anomalies** (2025 daily demand with the 4 flagged days) |
 
 The monthly model is **scale-free**: it works on ratios to the 3-month average, so the same
 model predicts for a single home, a feeder, or the whole city of Dhaka.

@@ -90,7 +90,16 @@ main{
 .stat.am .v{color:var(--amber)}
 .stat .v.ok{color:var(--ok)}
 .stat .v.bad{color:var(--red)}
-.chartbox{flex:1 1 auto;min-height:78px;position:relative;padding:clamp(6px,.9dvh,12px)}
+.chartbox{flex:1 1 auto;min-height:78px;display:flex;flex-direction:column;gap:4px;padding:clamp(6px,.9dvh,12px)}
+.tabs{display:flex;gap:5px;flex:0 0 auto;flex-wrap:nowrap;overflow:hidden}
+.tab{border:1px solid var(--line);background:#fff;color:var(--mut);font:600 clamp(10px,1.25dvh,11.5px) 'Inter',sans-serif;padding:clamp(3px,.55dvh,5px) clamp(8px,1vw,12px);border-radius:99px;cursor:pointer;white-space:nowrap;transition:.15s}
+.tab:hover{border-color:var(--teal);color:var(--teal)}
+.tab.active{background:var(--teal);border-color:var(--teal);color:#fff}
+.chart-area{flex:1 1 auto;min-height:64px;position:relative}
+.anev{display:none;flex:0 0 auto;flex-wrap:wrap;gap:5px}
+.anev .ev{font-size:clamp(9px,1.1dvh,10.5px);font-weight:600;color:var(--mut);background:#F8FAFC;border:1px solid var(--line);border-radius:99px;padding:2px 9px;white-space:nowrap}
+.anev .ev.h{color:var(--red);background:var(--red-soft);border-color:#FECACA}
+.anev .ev.l{color:var(--amber);background:var(--amber-soft);border-color:#FDE4C0}
 .fnotes{display:flex;flex-direction:column;gap:2px;min-width:0}
 .fn{font-size:clamp(9.5px,1.2dvh,11.5px);color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fn.sys{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35}
@@ -174,7 +183,16 @@ footer a{color:var(--teal);font-weight:600;white-space:nowrap}
         <div class="s" id="s3s">anomaly detection</div>
       </div>
     </div>
-    <div class="chartbox card"><canvas id="chart"></canvas></div>
+    <div class="chartbox card">
+      <div class="tabs" id="tabs">
+        <button type="button" class="tab active" data-tab="forecast">Forecast</button>
+        <button type="button" class="tab" data-tab="models">Models</button>
+        <button type="button" class="tab" data-tab="accuracy">Accuracy</button>
+        <button type="button" class="tab" data-tab="anomalies">Anomalies</button>
+      </div>
+      <div class="chart-area"><canvas id="chart"></canvas></div>
+      <div class="anev" id="anEvents"></div>
+    </div>
     <div class="fnotes">
       <div class="fn" id="perModel">All models (kWh): …</div>
       <div class="fn sys" id="sysNote">Loading system info…</div>
@@ -211,41 +229,143 @@ function showErr(m){ const e = $('err'); e.textContent = m; e.style.display = 'b
 function hideErr(){ $('err').style.display = 'none'; }
 
 /* ---------------- chart ---------------- */
-let chart = null;
-function drawChart(labels, values, nextLabel, nextVal, flagIdx){
-  if(chart) chart.destroy();
-  const n = values.length;
+let chart = null, activeTab = 'forecast', lastResult = null, modelsData = null, evalData = null;
+
+function baseOpts(yTitle){
+  return {
+    responsive: true, maintainAspectRatio: false,
+    layout: { padding: { right: 7 } },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', align: 'end',
+                labels: { boxWidth: 9, boxHeight: 9, usePointStyle: true, font: { size: 10.5 } } },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { maxTicksLimit: 10, maxRotation: 0, autoSkip: true, font: { size: 10 } } },
+      y: { grid: { color: '#EEF2F6' }, title: { display: !!yTitle, text: yTitle, font: { size: 10 } },
+           ticks: { font: { size: 10 }, callback: v => Math.abs(v) >= 1000 ? (v/1000) + 'k' : v } },
+    },
+  };
+}
+
+function drawForecast(r){
+  const labels = [r.labels.m1, r.labels.m2, r.labels.m3, r.labels.m4];
+  const values = [r.inputs.m1, r.inputs.m2, r.inputs.m3, r.inputs.m4];
+  const flagIdx = r.anomaly.verdict === 'normal' ? -1 : 3;
   const bg = values.map((_, i) => i === flagIdx ? '#DC2626' : '#0D9488');
   chart = new Chart($('chart'), {
     type: 'bar',
-    data: {
-      labels: [...labels, nextLabel],
-      datasets: [
-        { label: 'Your usage', data: [...values, null],
-          backgroundColor: bg, borderRadius: 6, maxBarThickness: 64 },
-        { label: 'Predicted next month', data: [...values.map(() => null), nextVal],
-          backgroundColor: '#C05F0A', borderRadius: 6, maxBarThickness: 64 },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      layout: { padding: { right: 7 } },
-      plugins: {
-        legend: { position: 'top', align: 'end',
-                  labels: { boxWidth: 9, boxHeight: 9, usePointStyle: true, font: { size: 10.5 } } },
-        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${Math.round(c.raw).toLocaleString()} kWh` } },
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 10.5 } } },
-        y: { grid: { color: '#EEF2F6' },
-             ticks: { font: { size: 10 }, callback: v => v >= 1000 ? (v/1000) + 'k' : v } },
-      },
-    },
+    data: { labels: [...labels, r.labels.next], datasets: [
+      { label: 'Your usage', data: [...values, null], backgroundColor: bg, borderRadius: 6, maxBarThickness: 64 },
+      { label: 'Predicted next month', data: [...values.map(() => null), r.next_kwh],
+        backgroundColor: '#C05F0A', borderRadius: 6, maxBarThickness: 64 },
+    ]},
+    options: Object.assign(baseOpts(), { plugins: Object.assign(baseOpts().plugins, {
+      tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${Math.round(c.raw).toLocaleString()} kWh` } } }) })
   });
 }
 
+/* --- evaluation figure 1: model comparison --- */
+function drawModels(mm){
+  const order = ['Linear Regression', 'SVM', 'Random Forest', 'Decision Tree'];
+  const daily = Object.fromEntries(mm.daily_demand_model.results.map(r => [r.model, r]));
+  const monthly = Object.fromEntries(mm.monthly_user_model.results.map(r => [r.model, r]));
+  const mk = m => order.map(n => monthly[n]['MAPE (%)']);
+  const dk = m => order.map(n => daily[n]['MAPE (%)']);
+  chart = new Chart($('chart'), {
+    type: 'bar',
+    data: { labels: order.map(n => SHORT[n]), datasets: [
+      { label: 'Monthly model — MAPE %', data: mk(), backgroundColor: '#0D9488', borderRadius: 6, maxBarThickness: 44 },
+      { label: 'Daily model — MAPE %', data: dk(), backgroundColor: '#94A3B8', borderRadius: 6, maxBarThickness: 44 },
+    ]},
+    options: Object.assign(baseOpts('Test MAPE (%) — lower is better'), {
+      plugins: Object.assign(baseOpts().plugins, {
+        tooltip: { callbacks: { afterBody: items => {
+          const n = order[items[0].dataIndex];
+          return [`monthly: RMSE ${monthly[n]['RMSE (GWh)']} GWh · R² ${monthly[n]['R2']}`,
+                  `daily: RMSE ${daily[n]['RMSE']} MW · R² ${daily[n]['R2']}`];
+        } } } }) })
+  });
+}
+
+/* --- evaluation figure 2: actual vs predicted (monthly test) --- */
+function drawAccuracy(ev){
+  const s = ev.monthly.series;
+  chart = new Chart($('chart'), {
+    type: 'line',
+    data: { labels: s.map(p => p.label), datasets: [
+      { label: 'Actual (GWh)', data: s.map(p => p.actual), borderColor: '#334155',
+        backgroundColor: '#334155', pointRadius: 3, borderWidth: 2, tension: .25 },
+      { label: ev.monthly.model + ' predicted', data: s.map(p => p.predicted), borderColor: '#0D9488',
+        backgroundColor: '#0D9488', pointRadius: 3, borderWidth: 2, borderDash: [5, 3], tension: .25 },
+    ]},
+    options: Object.assign(baseOpts('GWh'), {
+      plugins: Object.assign(baseOpts().plugins, {
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${Math.round(c.raw).toLocaleString()} GWh` } } }) })
+  });
+}
+
+/* --- evaluation figure 3: daily anomalies --- */
+function drawAnomalies(ev){
+  const s = ev.daily.series;
+  const anom = s.map(p => p.anomaly ? p.actual : null);
+  /* x axis: thin out the 298 days to ~10 month labels */
+  const mon = iso => new Date(iso + 'T00:00:00').toLocaleString('en', {month: 'short'});
+  chart = new Chart($('chart'), {
+    type: 'line',
+    data: { labels: s.map(p => p.date), datasets: [
+      { label: 'Actual 2025 demand', data: s.map(p => p.actual), borderColor: '#334155',
+        pointRadius: 0, borderWidth: 2, tension: .2 },
+      { label: ev.daily.model + ' expected', data: s.map(p => p.expected), borderColor: '#0D9488',
+        pointRadius: 0, borderWidth: 1.6, borderDash: [5, 3], tension: .2 },
+      { label: 'Anomaly day', data: anom, borderColor: '#DC2626', backgroundColor: '#DC2626',
+        pointRadius: 4, pointHoverRadius: 6, showLine: false },
+    ]},
+    options: Object.assign(baseOpts('MW'), {
+      scales: Object.assign(baseOpts().scales, {
+        x: { grid: { display: false }, autoSkip: false,
+             afterBuildTicks: axis => {
+               /* one tick at the first day of each month */
+               axis.ticks = s.reduce((acc, p, i) => {
+                 if(new Date(p.date + 'T00:00:00').getDate() === 1) acc.push({value: i});
+                 return acc;
+               }, []);
+             },
+             ticks: { font: { size: 10 }, maxRotation: 0,
+                      callback: v => { const p = s[v]; return p ? mon(p.date) : ''; } } } }),
+      plugins: Object.assign(baseOpts().plugins, {
+        tooltip: { callbacks: { title: it => niceDate(s[it[0].dataIndex].date),
+                                label: c => ` ${c.dataset.label}: ${Math.round(c.raw).toLocaleString()} MW` } } }) })
+  });
+  $('anEvents').innerHTML = ev.daily.events.map(e =>
+    `<span class="ev ${e.type === 'HIGH' ? 'h' : 'l'}">${niceDate(e.date)} · z ${e.z > 0 ? '+' : ''}${e.z.toFixed(1)} · ${e.type}</span>`).join('');
+}
+
+function niceDate(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return isNaN(d) ? iso : d.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'});
+}
+
+function drawActiveTab(){
+  if(chart){ chart.destroy(); chart = null; }
+  $('anEvents').style.display = 'none';
+  if(activeTab === 'forecast' && lastResult) drawForecast(lastResult);
+  else if(activeTab === 'models' && modelsData) drawModels(modelsData);
+  else if(activeTab === 'accuracy' && evalData) drawAccuracy(evalData);
+  else if(activeTab === 'anomalies' && evalData){ drawAnomalies(evalData); $('anEvents').style.display = 'flex'; }
+}
+
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab');
+  if(!b) return;
+  activeTab = b.dataset.tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === b));
+  drawActiveTab();
+});
+
 /* ---------------- render results ---------------- */
 function render(r){
+  lastResult = r;
   const s1v = $('s1v');
   $('s1l').textContent = 'Next month';
   s1v.textContent = Math.round(r.next_kwh).toLocaleString('en-US') + ' kWh';
@@ -267,10 +387,7 @@ function render(r){
       `<b${m === r.best_model ? ' class="best"' : ''}>${SHORT[m]} ${Math.round(k).toLocaleString('en-US')}</b>`
     ).join(' · ') + (window.innerWidth < 520 ? '' : ' — best: ' + r.best_model);
 
-  drawChart([r.labels.m1, r.labels.m2, r.labels.m3, r.labels.m4],
-            [r.inputs.m1, r.inputs.m2, r.inputs.m3, r.inputs.m4],
-            r.labels.next, r.next_kwh,
-            a.verdict === 'normal' ? -1 : 3);
+  drawActiveTab();
 }
 
 /* ---------------- predict ---------------- */
@@ -283,7 +400,15 @@ async function predict(){
   }
   hideErr();
   const go = $('go'); go.disabled = true; go.textContent = 'Predicting…';
-  try { render(await postJSON('/api/predict', body)); }
+  try {
+    const res = await postJSON('/api/predict', body);
+    render(res);
+    if(activeTab !== 'forecast'){                    /* jump back to the user's result */
+      activeTab = 'forecast';
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'forecast'));
+    }
+    drawActiveTab();
+  }
   catch(err){ showErr(err.message || 'Server unreachable'); }
   finally { go.disabled = false; go.textContent = 'Predict'; }
 }
@@ -292,7 +417,7 @@ $('sample').addEventListener('click', () => {
   predict();
 });
 
-/* ---------------- system info ---------------- */
+/* ---------------- system + evaluation info ---------------- */
 fetch('/api/meta').then(r => r.json()).then(m => {
   const chip = $('chipBest');
   const setChip = () => chip.textContent = 'Best: ' +
@@ -305,6 +430,11 @@ fetch('/api/meta').then(r => r.json()).then(m => {
     `<b>${m.anomaly_days_2025}</b> anomaly days found in 2025 · Dhaka grid forecast ${m.grid_forecast.month}: ` +
     `<b>${m.grid_forecast.total_gwh.toLocaleString('en-US')} GWh</b> · ${m.daily_rows.toLocaleString('en-US')} days of data`;
 }).catch(() => { $('sysNote').textContent = ''; });
+
+Promise.all([fetch('/api/models').then(r => r.json()),
+             fetch('/api/evaluation').then(r => r.json())])
+  .then(([mm, ev]) => { modelsData = mm; evalData = ev; })
+  .catch(() => {});
 
 predict();   /* first paint uses the sample values */
 </script>

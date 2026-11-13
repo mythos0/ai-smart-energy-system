@@ -38,7 +38,8 @@ fcast = json.load(open(os.path.join(ART, "next_month.json")))
 models_meta = json.load(open(os.path.join(ART, "models.json")))          # daily models
 monthly_meta = json.load(open(os.path.join(ART, "monthly_meta.json")))   # monthly models
 monthly_models = joblib.load(os.path.join(ART, "monthly_models.joblib"))
-test_preds = pd.read_csv(os.path.join(ART, "test_predictions.csv"))
+test_preds = pd.read_csv(os.path.join(ART, "test_predictions.csv"), parse_dates=["date"])
+monthly_preds = pd.read_csv(os.path.join(ART, "monthly_test_predictions.csv"))
 
 FEATS = monthly_meta["features"]        # ["r1", "r2", "r3", "msin", "mcos"]
 RSTD = monthly_meta["resid_std"]        # out-of-sample residual spread (ratio scale)
@@ -176,6 +177,36 @@ def meta():
 def api_models():
     return jsonify({"daily_demand_model": models_meta,
                     "monthly_user_model": monthly_meta})
+
+
+@app.route("/api/evaluation")
+def api_evaluation():
+    """Test-period series behind the evaluation charts on the dashboard."""
+    # monthly: complete months only (the last month of the dataset is partial)
+    mp = monthly_preds[monthly_preds["days"] >= 28]
+    monthly_series = [{"month": r["month"],
+                       "label": month_abbr[int(r["month"].split("-")[1])],
+                       "actual": float(r["actual_gwh"]),
+                       "predicted": float(r["predicted_gwh"])}
+                      for _, r in mp.iterrows()]
+
+    # daily: 2025 test days, actual vs model expectation
+    daily_series = [{"date": d.strftime("%Y-%m-%d"), "actual": float(a),
+                     "expected": float(p), "anomaly": int(i)}
+                    for d, a, p, i in zip(test_preds["date"], test_preds["actual_mw"],
+                                          test_preds["predicted_mw"], test_preds["is_anomaly"])]
+
+    ev = test_preds[test_preds["is_anomaly"] == 1]
+    ev = ev.reindex(ev["z"].abs().sort_values(ascending=False).index)
+    events = [{"date": d.strftime("%Y-%m-%d"), "actual": float(a), "expected": float(p),
+               "z": float(z), "type": "HIGH" if z > 0 else "LOW"}
+              for d, a, p, z in zip(ev["date"], ev["actual_mw"], ev["predicted_mw"], ev["z"])]
+
+    return jsonify({
+        "monthly": {"model": monthly_meta["best_model"], "series": monthly_series},
+        "daily": {"model": models_meta["best_model"], "series": daily_series,
+                  "events": events},
+    })
 
 
 @app.route("/api/predict", methods=["POST"])
