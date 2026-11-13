@@ -1,0 +1,12 @@
+{
+  "id": "tamim6/ai-smart-energy-system-training-pipeline",
+  "title": "AI Smart Energy System - Training Pipeline",
+  "code_file": "training_pipeline.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "dataset_sources": ["imuanzumanakhi/dhaka-2021-25-electricity-and-temperature-data"],
+  "keywords": ["bangladesh", "dhaka", "electricity", "load forecasting", "anomaly detection", "bill prediction", "scikit-learn"]
+}

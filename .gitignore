@@ -1,7 +1,5 @@
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
-.secrets/
-data/*.zip
-data/household_power_consumption.txt
+output/
 *.log

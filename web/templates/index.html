@@ -3,410 +3,506 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Smart Energy System — Forecast &amp; Anomaly Detection</title>
+<title>AI Smart Energy System — Bangladesh</title>
+<meta name="description" content="Next-month electricity prediction, BDT bill estimator and anomaly detection for Dhaka, Bangladesh.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 :root{
-  --bg:#f6f7f9; --card:#ffffff; --ink:#16202b; --muted:#5b6b7c; --line:#e3e8ee;
-  --blue:#0072B2; --orange:#E69F00; --green:#009E73; --red:#D55E00; --purple:#CC79A7; --gray:#9aa5b1;
+  --bg:#F5F7FA; --card:#FFFFFF; --line:#E2E8F0; --ink:#0F172A; --mut:#5B6B7F;
+  --teal:#0D9488; --teal-soft:#CCFBF1; --amber:#C05F0A; --amber-soft:#FEF3E2;
+  --red:#DC2626; --red-soft:#FEE2E2;
 }
-*{box-sizing:border-box; margin:0; padding:0}
-body{font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--ink); font-size:15px}
-header{background:linear-gradient(135deg,#101c2c 0%,#16283e 100%); color:#fff; padding:26px 0 22px}
-.wrap{max-width:1080px; margin:0 auto; padding:0 22px}
-header h1{font-size:22px; font-weight:700; letter-spacing:.2px}
-header p{color:#9fb3c8; font-size:13.5px; margin-top:6px; max-width:760px; line-height:1.5}
-.badge{display:inline-block; background:rgba(74,144,196,.18); color:#7fb8e3; border:1px solid rgba(74,144,196,.4);
-  font-size:11px; letter-spacing:1.2px; text-transform:uppercase; padding:3px 10px; border-radius:20px; margin-bottom:10px}
-nav{display:flex; gap:6px; margin:-14px auto 18px; background:var(--card); border:1px solid var(--line);
-  border-radius:12px; padding:6px; max-width:1080px; box-shadow:0 1px 3px rgba(20,30,45,.06); flex-wrap:wrap}
-nav button{flex:1; min-width:130px; border:0; background:transparent; padding:10px 8px; font-size:14px; font-weight:500;
-  color:var(--muted); border-radius:8px; cursor:pointer; transition:all .15s}
-nav button.active{background:var(--ink); color:#fff}
-nav button:hover:not(.active){background:#eef1f5}
-main{margin-bottom:60px}
-.card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:22px; margin-bottom:18px;
-  box-shadow:0 1px 3px rgba(20,30,45,.05)}
-.card h2{font-size:16.5px; font-weight:600; margin-bottom:4px}
-.card .sub{color:var(--muted); font-size:13px; margin-bottom:16px; line-height:1.5}
-.controls{display:flex; gap:12px; align-items:end; flex-wrap:wrap; margin-bottom:16px}
-.controls label{font-size:12px; color:var(--muted); display:block; margin-bottom:4px; font-weight:500}
-.controls input[type=date]{border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:14px;
-  font-family:inherit; color:var(--ink); background:#fff}
-.btn{background:var(--blue); color:#fff; border:0; border-radius:8px; padding:9px 18px; font-size:14px; font-weight:500;
-  cursor:pointer; font-family:inherit}
-.btn:hover{filter:brightness(1.08)}
-.btn.ghost{background:#eef4fa; color:var(--blue)}
-.chart-box{position:relative; height:360px}
-.chart-box.tall{height:420px}
-.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px}
-.stat{background:#fbfcfd; border:1px solid var(--line); border-radius:10px; padding:12px 14px}
-.stat .k{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px}
-.stat .v{font-size:21px; font-weight:700; margin-top:3px}
-.stat .v small{font-size:12px; color:var(--muted); font-weight:400}
-table{width:100%; border-collapse:collapse; font-size:13.5px}
-th{text-align:left; color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase;
-  letter-spacing:.6px; padding:9px 10px; border-bottom:2px solid var(--line)}
-td{padding:9px 10px; border-bottom:1px solid var(--line)}
-tr:last-child td{border-bottom:0}
-tr.hl td{background:#f0f7fd; font-weight:600}
-.num{text-align:right; font-variant-numeric:tabular-nums}
-.best{color:var(--green); font-weight:600}
-code, pre{font-family:'SFMono-Regular',Consolas,monospace}
-pre{background:#101c2c; color:#d5e3f0; padding:16px; border-radius:10px; font-size:12.5px; overflow-x:auto; line-height:1.55}
-pre .c{color:#6d8497}
-.api-endpoint{display:flex; gap:10px; align-items:baseline; margin:14px 0 6px; flex-wrap:wrap}
-.method{font-size:11px; font-weight:700; padding:3px 8px; border-radius:5px; letter-spacing:.5px}
-.method.get{background:#e3f3ec; color:#1c7c5a}
-.method.post{background:#fdeede; color:#b26a00}
-.path{font-family:Consolas,monospace; font-size:13.5px; font-weight:600}
-.desc{color:var(--muted); font-size:13px; margin-bottom:8px}
-textarea{width:100%; min-height:90px; border:1px solid var(--line); border-radius:8px; padding:10px;
-  font-family:Consolas,monospace; font-size:12px; color:var(--ink)}
-.note{font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.5}
-footer{text-align:center; color:var(--muted); font-size:12.5px; padding:26px 0 34px; border-top:1px solid var(--line)}
-footer a{color:var(--blue); text-decoration:none}
-.anom-table td{font-size:13px}
-.pill{display:inline-block; padding:2px 9px; border-radius:12px; font-size:11.5px; font-weight:600}
-.pill.high{background:#fdeee6; color:var(--red)}
-.pill.low{background:#e8f0fa; color:var(--blue)}
-.hidden{display:none}
-@media (max-width:640px){ .chart-box{height:300px} }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+h1,h2,h3{font-family:'Sora','Inter',sans-serif;letter-spacing:-.02em}
+a{color:var(--teal);text-decoration:none}
+.container{max-width:1080px;margin:0 auto;padding:0 20px}
+
+/* header */
+header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:62px}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Sora';font-weight:700;font-size:17px;color:var(--ink)}
+.brand .dot{width:30px;height:30px;border-radius:9px;background:var(--teal);color:#fff;display:grid;place-items:center;font-size:15px}
+.navlinks{display:flex;gap:22px;font-size:14px;font-weight:500}
+.navlinks a{color:var(--mut)}.navlinks a:hover{color:var(--teal)}
+@media(max-width:760px){.navlinks{display:none}}
+
+/* hero */
+.hero{padding:46px 0 26px}
+.hero .tag{display:inline-flex;align-items:center;gap:7px;background:var(--teal-soft);color:#0F766E;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:99px;margin-bottom:16px}
+.hero .tag b{font-weight:700}
+.hero h1{font-size:clamp(26px,4.2vw,38px);line-height:1.16;max-width:840px}
+.hero p.sub{margin-top:12px;color:var(--mut);font-size:15.5px;max-width:760px}
+.badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.badge{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 13px;font-size:13px;color:var(--mut)}
+.badge b{color:var(--ink)}
+
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:26px 0 8px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px 15px}
+.kpi .lab{font-size:12.5px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.kpi .val{font-family:'Sora';font-size:27px;font-weight:700;margin-top:6px}
+.kpi .note{font-size:12.5px;color:var(--mut);margin-top:3px}
+.kpi.hl{background:linear-gradient(135deg,#0D9488,#0F766E);border:none;color:#fff}
+.kpi.hl .lab,.kpi.hl .note{color:rgba(255,255,255,.8)}
+
+/* sections */
+section{padding:34px 0 6px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.sec-head h2{font-size:22px}
+.sec-head .kicker{color:var(--teal);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+.sec-head .hint{color:var(--mut);font-size:13.5px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.chart-wrap{position:relative;height:330px}
+.chart-wrap.sm{height:250px}
+.footnote{font-size:12.5px;color:var(--mut);margin-top:12px}
+.footnote b{color:var(--ink)}
+
+/* forecast stats row */
+.fstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:16px}
+.fstat{background:#F8FAFC;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.fstat .l{font-size:12px;color:var(--mut);font-weight:600}
+.fstat .v{font-family:'Sora';font-weight:700;font-size:18px;margin-top:2px}
+
+/* bill */
+.bill-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:820px){.bill-grid{grid-template-columns:1fr}}
+.ctl-lab{font-size:13px;font-weight:600;color:var(--mut);margin:14px 0 7px}
+.ctl-lab:first-child{margin-top:0}
+.unit-row{display:flex;align-items:center;gap:12px}
+input[type=number]{width:130px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font:600 16px 'Inter';color:var(--ink)}
+input[type=number]:focus{outline:2px solid var(--teal);border-color:var(--teal)}
+.suffix{color:var(--mut);font-size:14px;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--teal)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#fff;border:1.5px solid var(--line);border-radius:99px;padding:6px 13px;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;transition:.15s}
+.chip:hover{border-color:var(--teal);color:var(--teal)}
+select{padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;font:600 14px 'Inter';color:var(--ink);background:#fff}
+.total-card{background:linear-gradient(135deg,#0D9488,#0F766E);border-radius:16px;color:#fff;padding:20px 22px}
+.total-card .l{font-size:13px;color:rgba(255,255,255,.85);font-weight:600}
+.total-card .v{font-family:'Sora';font-size:38px;font-weight:800;margin-top:4px;letter-spacing:-.02em}
+.total-card .d{font-size:12.5px;color:rgba(255,255,255,.85);margin-top:6px}
+.breakdown{margin-top:14px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.br-row{display:flex;justify-content:space-between;padding:11px 16px;font-size:14px;border-bottom:1px solid var(--line);background:#fff}
+.br-row:last-child{border-bottom:none;background:#F8FAFC;font-weight:700}
+.br-row span:first-child{color:var(--mut)}
+.br-row.total span:first-child{color:var(--ink)}
+.slab-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:14px}
+.slab-table th{background:#F1F5F9;text-align:left;padding:9px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.slab-table td{padding:9px 12px;border-bottom:1px solid var(--line)}
+.slab-table tr:last-child td{border-bottom:none}
+.slab-table tr.active{background:var(--teal-soft);font-weight:700}
+.slab-table .r{text-align:right;font-variant-numeric:tabular-nums}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{background:#F1F5F9;text-align:left;padding:11px 14px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.tbl td{padding:11px 14px;border-bottom:1px solid var(--line)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .r{text-align:right;font-variant-numeric:tabular-nums}
+.tbl tr.best{background:var(--teal-soft)}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
+.pill.high{background:var(--red-soft);color:var(--red)}
+.pill.low{background:var(--amber-soft);color:var(--amber)}
+.pill.ok{background:var(--teal-soft);color:#0F766E}
+
+/* footer */
+footer{margin-top:44px;border-top:1px solid var(--line);background:#fff;padding:30px 0 38px;color:var(--mut);font-size:13.5px}
+footer .cols{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+footer h3{font-size:14px;color:var(--ink);margin-bottom:8px}
+footer ul{list-style:none}
+footer li{margin:4px 0}
 </style>
 </head>
 <body>
+
 <header>
-  <div class="wrap">
-    <span class="badge">Research demo &middot; UCI household dataset 2006&ndash;2010</span>
-    <h1>AI Smart Energy System</h1>
-    <p>Day-ahead electricity consumption forecasting and anomaly detection for a single household.
-       XGBoost forecaster benchmarked against 7 models (22.4% RMSE improvement over the seasonal-na&iuml;ve
-       baseline), with residual-based anomaly detection (AUC 0.885). Full methodology in the
-       accompanying research paper.</p>
+  <div class="container nav">
+    <div class="brand"><span class="dot">⚡</span> AI Smart Energy System</div>
+    <nav class="navlinks">
+      <a href="#forecast">Forecast</a>
+      <a href="#bill">Bill in BDT</a>
+      <a href="#anomalies">Anomalies</a>
+      <a href="#models">Models</a>
+      <a href="/api/health" target="_blank">API</a>
+    </nav>
   </div>
 </header>
 
-<nav class="wrap">
-  <button class="active" data-tab="forecast">&#9889; Forecast</button>
-  <button data-tab="anomaly">&#128269; Anomalies</button>
-  <button data-tab="models">&#128202; Models</button>
-  <button data-tab="api">&#128295; API</button>
-</nav>
+<main class="container">
 
-<main class="wrap">
+  <!-- hero -->
+  <div class="hero">
+    <span class="tag">🇧🇩 <b>Bangladesh</b> · Dhaka daily electricity demand 2021–2025</span>
+    <h1>Next-month electricity prediction, bill estimate in BDT &amp; anomaly detection</h1>
+    <p class="sub">Four machine-learning models — Linear Regression, SVM, Random Forest and Decision Tree —
+    trained on daily demand and temperature data of Dhaka. The best model predicts next month's usage,
+    estimates the household bill with the official 2026 BERC tariff, and flags unusual demand days.</p>
+    <div class="badges" id="badges"></div>
+    <div class="kpis" id="kpis"></div>
+  </div>
 
-<!-- ================= FORECAST ================= -->
-<section id="tab-forecast">
-  <div class="card">
-    <h2>24-hour-ahead forecast — backtest</h2>
-    <div class="sub">Select any day in the held-out test period ({{ test_start }} &rarr; {{ test_end }}).
-      The chart shows the previous 7 days of actual consumption, then the model's day-ahead forecast
-      versus the actual load, with a &plusmn;1.96&sigma; prediction band
-      (&sigma; = validation residual std).</div>
-    <div class="controls">
-      <div><label for="fc-date">Forecast date</label>
-        <input type="date" id="fc-date" min="{{ test_start }}" max="{{ test_end }}" value="{{ default_day }}"></div>
-      <button class="btn" id="fc-btn">Run forecast</button>
-      <button class="btn ghost" id="fc-random">Random day</button>
+  <!-- forecast -->
+  <section id="forecast">
+    <div class="sec-head">
+      <div>
+        <div class="kicker">Prediction</div>
+        <h2 id="fTitle">Next Month Forecast</h2>
+      </div>
+      <div class="hint">Last 90 days of real demand + 30-day model forecast</div>
     </div>
-    <div class="stats">
-      <div class="stat"><div class="k">Model</div><div class="v" style="font-size:16px">XGBoost</div></div>
-      <div class="stat"><div class="k">Horizon</div><div class="v">24 <small>hours</small></div></div>
-      <div class="stat"><div class="k">Day RMSE</div><div class="v" id="s-rmse">–</div></div>
-      <div class="stat"><div class="k">Day MAE</div><div class="v" id="s-mae">–</div></div>
-      <div class="stat"><div class="k">Day energy</div><div class="v" id="s-kwh">–</div></div>
+    <div class="card">
+      <div class="chart-wrap"><canvas id="forecastChart"></canvas></div>
+      <div class="fstats" id="fstats"></div>
+      <p class="footnote" id="fNote"></p>
     </div>
-    <div class="chart-box tall"><canvas id="chart-forecast"></canvas></div>
-  </div>
+  </section>
 
-  <div class="card">
-    <h2>Live forecast — bring your own data</h2>
-    <div class="sub">Paste at least 216 hourly kW readings (oldest first, comma-separated) to produce a
-      genuine 24-hour forecast with the deployed model, or click "Use demo history" to load a real week
-      from the dataset.</div>
-    <textarea id="live-input" placeholder="1.24, 0.98, 0.87, 0.76, ..."></textarea>
-    <div class="controls" style="margin-top:12px">
-      <button class="btn" id="live-btn">Forecast next 24 h</button>
-      <button class="btn ghost" id="live-demo">Use demo history</button>
+  <!-- bill -->
+  <section id="bill">
+    <div class="sec-head">
+      <div>
+        <div class="kicker">Bill Estimator</div>
+        <h2>Predicted Electricity Bill in BDT</h2>
+      </div>
+      <div class="hint">Official Bangladesh residential tariff — BERC 2026 (LT-A)</div>
     </div>
-    <div class="chart-box hidden" id="live-wrap"><canvas id="chart-live"></canvas></div>
-    <div class="note" id="live-note"></div>
-  </div>
-</section>
-
-<!-- ================= ANOMALY ================= -->
-<section id="tab-anomaly" class="hidden">
-  <div class="card">
-    <h2>Anomaly detection — residual z-score</h2>
-    <div class="sub">Each hour's forecast residual is standardised by the validation residual standard
-      deviation. Hours with |z| &gt; 3 are flagged as anomalies (red markers). The table lists the
-      strongest events detected in the clean test period.</div>
-    <div class="controls">
-      <div><label for="an-start">Week start</label>
-        <input type="date" id="an-start" min="{{ test_start }}" max="{{ test_end }}" value="{{ default_day }}"></div>
-      <button class="btn" id="an-btn">Show week</button>
+    <div class="card">
+      <div class="bill-grid">
+        <div>
+          <div class="ctl-lab">Monthly electricity usage (units / kWh)</div>
+          <div class="unit-row">
+            <input type="number" id="units" min="1" max="5000" value="250">
+            <span class="suffix">kWh</span>
+          </div>
+          <div style="margin-top:12px"><input type="range" id="unitsRange" min="10" max="1500" value="250" step="5"></div>
+          <div class="ctl-lab">Quick presets</div>
+          <div class="chips" id="chips"></div>
+          <div class="ctl-lab">Sanctioned load</div>
+          <select id="kw">
+            <option value="1" selected>1 kW (typical home)</option>
+            <option value="2">2 kW</option>
+            <option value="3">3 kW</option>
+            <option value="5">5 kW</option>
+          </select>
+          <p class="footnote">Lifeline rate ৳4.63/unit applies only when the monthly total is 50 units or less.
+          Otherwise the stepped slab rates on the right are used. Demand charge ৳42 per kW and 5% VAT are included.</p>
+        </div>
+        <div>
+          <div class="total-card">
+            <div class="l">Estimated monthly bill</div>
+            <div class="v" id="billTotal">৳ —</div>
+            <div class="d" id="billPer">—</div>
+          </div>
+          <div class="breakdown">
+            <div class="br-row"><span>Energy charge (slabs)</span><span id="brEnergy">—</span></div>
+            <div class="br-row"><span>Demand charge (<span id="brKw">1</span> kW)</span><span id="brDemand">—</span></div>
+            <div class="br-row"><span>VAT (5%)</span><span id="brVat">—</span></div>
+            <div class="br-row total"><span>Total payable</span><span id="brTotal">—</span></div>
+          </div>
+          <table class="slab-table" id="slabTable">
+            <thead><tr><th>Slab (units)</th><th class="r">Rate</th><th class="r">Units billed</th><th class="r">Charge</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
-    <div class="chart-box tall"><canvas id="chart-anomaly"></canvas></div>
-  </div>
-  <div class="card">
-    <h2>Top detected events (Apr&ndash;Nov 2010)</h2>
-    <div class="sub">Strongest unexplained deviations between actual and forecast consumption.</div>
-    <table class="anom-table"><thead><tr>
-      <th>Start</th><th>Duration</th><th class="num">Max |z|</th><th class="num">Actual</th>
-      <th class="num">Forecast</th><th>Direction</th></tr></thead>
-      <tbody id="anom-rows"><tr><td colspan="6">Loading…</td></tr></tbody></table>
-  </div>
-</section>
+  </section>
 
-<!-- ================= MODELS ================= -->
-<section id="tab-models" class="hidden">
-  <div class="card">
-    <h2>Forecasting leaderboard — 24 h ahead</h2>
-    <div class="sub">Chronological hold-out test (Apr&ndash;Nov 2010, 5,554 hours). Skill = RMSE improvement
-      over the seasonal-na&iuml;ve 24 h baseline.</div>
-    <table id="fmodels"><thead><tr>
-      <th>Model</th><th class="num">RMSE (kW)</th><th class="num">MAE (kW)</th><th class="num">MAPE (%)</th>
-      <th class="num">R&sup2;</th><th class="num">Skill</th></tr></thead><tbody></tbody></table>
-  </div>
-  <div class="card">
-    <h2>Anomaly detection leaderboard — 2% synthetic injection</h2>
-    <div class="sub">Point-wise detection of injected spikes, level shifts and dropouts (112 anomalous hours).
-      Operating point set to the true contamination rate.</div>
-    <table id="amodels"><thead><tr>
-      <th>Detector</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th>
-      <th class="num">ROC-AUC</th><th class="num">PR-AUC</th></tr></thead><tbody></tbody></table>
-  </div>
-</section>
+  <!-- anomalies -->
+  <section id="anomalies">
+    <div class="sec-head">
+      <div>
+        <div class="kicker">Monitoring</div>
+        <h2>Anomaly Detection</h2>
+      </div>
+      <div class="hint">Test year 2025 — days when demand deviated far from the model's expectation</div>
+    </div>
+    <div class="card">
+      <div class="chart-wrap"><canvas id="anomalyChart"></canvas></div>
+      <div style="margin-top:16px;overflow-x:auto">
+        <table class="tbl" id="anTable">
+          <thead><tr><th>Date</th><th class="r">Actual (MW)</th><th class="r">Expected (MW)</th><th class="r">Gap (MW)</th><th class="r">z-score</th><th>Classification</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="footnote" id="anNote"></p>
+    </div>
+  </section>
 
-<!-- ================= API ================= -->
-<section id="tab-api" class="hidden">
-  <div class="card">
-    <h2>REST API</h2>
-    <div class="sub">All endpoints return JSON. Base URL is this deployment's root.</div>
-    <div class="api-endpoint"><span class="method get">GET</span><span class="path">/api/health</span></div>
-    <div class="desc">Service and model status.</div>
-    <div class="api-endpoint"><span class="method get">GET</span><span class="path">/api/models</span></div>
-    <div class="desc">Full benchmark leaderboards (forecasting + anomaly detection).</div>
-    <div class="api-endpoint"><span class="method get">GET</span><span class="path">/api/history?start=2010-07-01&amp;end=2010-07-08</span></div>
-    <div class="desc">Actual hourly consumption (kW) between two dates.</div>
-    <div class="api-endpoint"><span class="method get">GET</span><span class="path">/api/forecast?date=2010-07-06</span></div>
-    <div class="desc">Day-ahead backtest forecast for a date in the test period.</div>
-    <div class="api-endpoint"><span class="method get">GET</span><span class="path">/api/anomaly?start=2010-11-01&amp;end=2010-11-08</span></div>
-    <div class="desc">Residual z-scores and anomaly flags for a date range.</div>
-    <div class="api-endpoint"><span class="method get">GET</span><span class="path">/api/anomaly/casestudy</span></div>
-    <div class="desc">Strongest anomaly events detected on the clean test set.</div>
-    <div class="api-endpoint"><span class="method post">POST</span><span class="path">/api/forecast</span></div>
-    <div class="desc">Live 24-hour forecast from your own hourly readings (&ge;216 values, oldest first).</div>
-    <pre><span class="c"># live forecast example</span>
-curl -X POST https://YOUR-APP.onrender.com/api/forecast \
-  -H "Content-Type: application/json" \
-  -d '{"values": [1.24, 0.98, 0.87, ... ]}'
-
-<span class="c"># response</span>
-{"mode": "live", "horizon_h": 24, "points": [
-  {"timestamp": "...T00:00:00", "power_kw": 1.105}, ...]}</pre>
-  </div>
-</section>
+  <!-- models -->
+  <section id="models">
+    <div class="sec-head">
+      <div>
+        <div class="kicker">Evaluation</div>
+        <h2>Model Comparison</h2>
+      </div>
+      <div class="hint">Trained on 2021–2024 · tested on 2025 (out-of-sample)</div>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto">
+        <table class="tbl" id="mTable">
+          <thead><tr><th>Model</th><th class="r">RMSE (MW)</th><th class="r">MAE (MW)</th><th class="r">MAPE (%)</th><th class="r">R²</th><th>Verdict</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="chart-wrap sm" style="margin-top:18px"><canvas id="modelsChart"></canvas></div>
+    </div>
+  </section>
 
 </main>
 
 <footer>
-  Built from the research paper <i>“AI-Based Smart Electricity Consumption Prediction and Anomaly
-  Detection”</i> &middot; UCI Individual Household Electric Power Consumption dataset &middot;
-  <a href="https://github.com/mythos0/ai-smart-energy-system" target="_blank">GitHub repository</a>
+  <div class="container cols">
+    <div style="max-width:380px">
+      <h3>⚡ AI Smart Energy System</h3>
+      <p>Final-year project, Department of CSE, Dhaka International University.
+      Next-month prediction, bill estimation and anomaly monitoring for the Bangladeshi power system.</p>
+    </div>
+    <div>
+      <h3>Team</h3>
+      <ul>
+        <li>Tamim · Emon · Montasir</li>
+        <li>Muntaha · Shorov</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Sources</h3>
+      <ul>
+        <li><a href="https://www.kaggle.com/datasets/imuanzumanakhi/dhaka-2021-25-electricity-and-temperature-data" target="_blank" rel="noopener">Dhaka 2021–25 electricity dataset (Kaggle)</a></li>
+        <li><a href="https://www.kaggle.com/code/tamim6/ai-smart-energy-system-training-pipeline" target="_blank" rel="noopener">Training notebook (Kaggle)</a></li>
+        <li>Tariff: BERC residential LT-A, 2026</li>
+      </ul>
+    </div>
+  </div>
 </footer>
 
 <script>
-const COL = {blue:'#0072B2', orange:'#E69F00', green:'#009E73', red:'#D55E00',
-             purple:'#CC79A7', gray:'#9aa5b1', ink:'#16202b'};
-Chart.defaults.font.family = "'Inter', sans-serif";
-Chart.defaults.font.size = 12;
-Chart.defaults.color = '#5b6b7c';
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const taka = n => '৳ ' + n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-/* ---------------- tabs ---------------- */
-document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('nav button').forEach(x => x.classList.remove('active'));
-  document.querySelectorAll('main section').forEach(x => x.classList.add('hidden'));
-  b.classList.add('active');
-  document.getElementById('tab-' + b.dataset.tab).classList.remove('hidden');
-}));
+async function getJSON(url, opts){
+  const r = await fetch(url, opts);
+  if(!r.ok) throw new Error(url + ' ' + r.status);
+  return r.json();
+}
+function niceDate(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return isNaN(d) ? iso : d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+}
 
-const iso = d => d.toISOString().slice(0,10);
-const shortLabel = ts => {
-  const d = new Date(ts);
-  return d.toLocaleDateString('en-GB', {day:'numeric', month:'short'}) + ' ' +
-         d.getHours().toString().padStart(2,'0') + 'h';
-};
+/* ---------------- boot ---------------- */
+Promise.all([getJSON('/api/forecast'), getJSON('/api/meta'), getJSON('/api/anomalies'), getJSON('/api/models')])
+  .then(([fc, meta, an, mm]) => {
+    renderHero(meta, mm, fc);
+    renderForecast(fc);
+    renderAnomalies(an);
+    renderModels(mm);
+  })
+  .catch(e => console.error(e));
 
-/* ---------------- forecast tab ---------------- */
-let fcChart = null;
-async function runForecast(dateStr){
-  const r = await fetch('/api/forecast?date=' + dateStr).then(r => r.json());
-  if (r.error){ alert(r.error); return; }
-  const hStart = new Date(r.date); hStart.setDate(hStart.getDate() - 8);
-  const hEnd = new Date(r.date); hEnd.setDate(hEnd.getDate() - 1);   // history ends BEFORE target day
-  const hist = await fetch(`/api/history?start=${iso(hStart)}&end=${iso(hEnd)}`).then(r => r.json());
-  const histPts = hist.series.map(p => ({x: p.timestamp, y: p.power_kw}));
-  const fPts = r.points.map(p => ({x: p.timestamp, y: p.forecast_kw}));
-  const aPts = r.points.map(p => ({x: p.timestamp, y: p.actual_kw}));
-  const band = r.sigma_kw * 1.96;
-  const up = fPts.map(p => ({x: p.x, y: p.y + band}));
-  const dn = fPts.map(p => ({x: p.x, y: Math.max(0, p.y - band)}));
+/* ---------------- hero ---------------- */
+function renderHero(meta, mm, fc){
+  const best = mm.best_model;
+  const rmse = mm.results.find(r => r.model === best).RMSE;
+  document.getElementById('badges').innerHTML = `
+    <div class="badge">🏆 Best model: <b>${best}</b></div>
+    <div class="badge">Test RMSE <b>${fmt(rmse)} MW</b></div>
+    <div class="badge">Data: <b>${fmt(meta.daily_rows)} days</b> (until ${meta.last_day})</div>
+    <div class="badge">Predicting: <b>${meta.next_month}</b></div>`;
 
-  const valid = r.points.filter(p => p.actual_kw != null);
-  const rmse = Math.sqrt(valid.reduce((s,p) => s + (p.actual_kw - p.forecast_kw)**2, 0) / valid.length);
-  const mae = valid.reduce((s,p) => s + Math.abs(p.actual_kw - p.forecast_kw), 0) / valid.length;
-  const kwh = valid.reduce((s,p) => s + p.actual_kw, 0);
-  document.getElementById('s-rmse').textContent = rmse.toFixed(3) + ' kW';
-  document.getElementById('s-mae').textContent = mae.toFixed(3) + ' kW';
-  document.getElementById('s-kwh').textContent = kwh.toFixed(1) + ' kWh';
+  const s = fc.stats;
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi hl"><div class="lab">Predicted usage — ${fc.month_name}</div><div class="val">${fmt(s.total_gwh)} GWh</div><div class="note">total electricity for next month</div></div>
+    <div class="kpi"><div class="lab">Average load</div><div class="val">${fmt(s.avg_mw)} MW</div><div class="note">daily average demand</div></div>
+    <div class="kpi"><div class="lab">Peak day</div><div class="val">${fmt(s.peak_mw)} MW</div><div class="note">${niceDate(s.peak_date)}</div></div>
+    <div class="kpi"><div class="lab">vs same month last year</div><div class="val">${s.yoy_pct > 0 ? '+' : ''}${s.yoy_pct}%</div><div class="note">${fmt(s.last_year_gwh)} GWh in 2024</div></div>`;
 
-  if (fcChart) fcChart.destroy();
-  fcChart = new Chart(document.getElementById('chart-forecast'), {
+  document.getElementById('fTitle').textContent = `Next Month Forecast — ${fc.month_name}`;
+  const kernel = best === 'SVM' ? ' (RBF kernel, scaled inputs)' : '';
+  document.getElementById('fNote').innerHTML =
+    `Model: <b>${best}</b>${kernel}. The forecast is built day by day — each prediction is fed back as input for
+    the next day. Future temperature is set to the average ${fc.month_name.split(' ')[0]} temperature of past years.
+    The shaded band shows ±${fmt(s.rmse_mw)} MW (one test RMSE).`;
+}
+
+/* shared chart options */
+function chartOpts(yTitle){
+  return {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', align: 'end', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, font: { size: 11.5 } } },
+      tooltip: { callbacks: { title: it => niceDate(it[0].label) } }
+    },
+    scales: {
+      x: { ticks: { maxTicksLimit: 10, maxRotation: 0, autoSkip: true, font: { size: 10.5 } }, grid: { display: false } },
+      y: { title: { display: true, text: yTitle, font: { size: 11 } }, grid: { color: '#EEF2F6' },
+           ticks: { callback: v => fmt(v), font: { size: 10.5 } } }
+    }
+  };
+}
+
+/* ---------------- forecast chart ---------------- */
+function renderForecast(fc){
+  const hist = fc.history_tail, fut = fc.days, s = fc.stats;
+  const labels = hist.map(h => h.date).concat(fut.map(f => f.date));
+  const pad = hist.map(() => null);
+  const actual = hist.map(h => h.demand_mw).concat(fut.map(() => null));
+  const predicted = pad.concat(fut.map(f => f.demand_mw));
+  const bandLo = pad.concat(fut.map(f => +(f.demand_mw - s.rmse_mw).toFixed(1)));
+  const bandHi = pad.concat(fut.map(f => +(f.demand_mw + s.rmse_mw).toFixed(1)));
+
+  document.getElementById('fstats').innerHTML = `
+    <div class="fstat"><div class="l">Total usage</div><div class="v">${fmt(s.total_gwh)} GWh</div></div>
+    <div class="fstat"><div class="l">Average load</div><div class="v">${fmt(s.avg_mw)} MW</div></div>
+    <div class="fstat"><div class="l">Peak day</div><div class="v">${fmt(s.peak_mw)} MW</div></div>
+    <div class="fstat"><div class="l">vs last year</div><div class="v">${s.yoy_pct > 0 ? '+' : ''}${s.yoy_pct}%</div></div>`;
+
+  new Chart(document.getElementById('forecastChart'), {
     type: 'line',
-    data: { datasets: [
-      {label: 'Actual (previous week)', data: histPts, borderColor: COL.ink, borderWidth: 1.4,
-       pointRadius: 0, tension: .25, order: 4},
-      {label: 'Actual (target day)', data: aPts, borderColor: COL.gray, borderWidth: 2.2,
-       pointRadius: 0, tension: .25, order: 3},
-      {label: 'XGBoost forecast', data: fPts, borderColor: COL.red, borderWidth: 2.4,
-       pointRadius: 0, tension: .25, order: 2},
-      {label: '95% band', data: dn, borderColor: 'transparent', backgroundColor: 'rgba(213,94,0,.10)',
-       fill: '+1', pointRadius: 0, order: 1},
-      {label: '__upper', data: up, borderColor: 'transparent', pointRadius: 0, order: 0},
+    data: { labels, datasets: [
+      /* band: fill between lower (index 0) and upper (index 1) */
+      { label: '± RMSE band', data: bandLo, borderColor: 'transparent', pointRadius: 0, borderWidth: 0,
+        backgroundColor: 'rgba(192,95,10,.12)', fill: 1 },
+      { label: '_bandHi', data: bandHi, borderColor: 'transparent', pointRadius: 0, borderWidth: 0 },
+      { label: 'Actual demand (last 90 days)', data: actual, borderColor: '#334155', pointRadius: 0, borderWidth: 2, tension: .25 },
+      { label: 'Model forecast', data: predicted, borderColor: '#C05F0A', pointRadius: 0, borderWidth: 2.5, tension: .25 },
     ]},
+    options: chartOpts('Demand (MW)')
+  });
+}
+
+/* ---------------- anomalies ---------------- */
+function renderAnomalies(an){
+  const S = an.series;
+  const labels = S.map(p => p.date);
+  const norm = S.map(p => p.is_anomaly ? null : p.actual_mw);
+  const anomPts = S.map(p => p.is_anomaly ? p.actual_mw : null);
+  const expected = S.map(p => p.expected_mw);
+
+  new Chart(document.getElementById('anomalyChart'), {
+    type: 'line',
+    data: { labels, datasets: [
+      { label: 'Actual demand', data: norm, borderColor: '#334155', pointRadius: 0, borderWidth: 2, tension: .2 },
+      { label: 'Model expected', data: expected, borderColor: '#0D9488', pointRadius: 0, borderWidth: 1.6, tension: .2, borderDash: [5, 3] },
+      { label: 'Anomaly', data: anomPts, borderColor: '#DC2626', backgroundColor: '#DC2626', pointRadius: 5, pointHoverRadius: 7, showLine: false },
+    ]},
+    options: chartOpts('Demand (MW)')
+  });
+
+  document.querySelector('#anTable tbody').innerHTML = an.events.map(e => `
+    <tr>
+      <td><b>${niceDate(e.date)}</b></td>
+      <td class="r">${fmt(e.actual_mw)}</td>
+      <td class="r">${fmt(e.expected_mw)}</td>
+      <td class="r" style="color:${e.gap_mw > 0 ? '#DC2626' : '#C05F0A'}">${e.gap_mw > 0 ? '+' : ''}${fmt(e.gap_mw)}</td>
+      <td class="r">${e.z > 0 ? '+' : ''}${e.z.toFixed(2)}</td>
+      <td><span class="pill ${e.z > 0 ? 'high' : 'low'}">${e.type}</span></td>
+    </tr>`).join('');
+
+  document.getElementById('anNote').innerHTML =
+    `Method: <b>residual z-score</b> — every day the gap between actual and expected demand is standardised,
+    and days beyond <b>|z| &gt; 3</b> are flagged. ${an.events.length} unusual days were found in 2025,
+    including the <b>Eid-ul-Adha</b> demand swing in June (holiday drop seen one day later than the calendar flag).`;
+}
+
+/* ---------------- models ---------------- */
+function renderModels(mm){
+  const best = mm.best_model;
+  document.querySelector('#mTable tbody').innerHTML = mm.results.map(r => `
+    <tr class="${r.model === best ? 'best' : ''}">
+      <td><b>${r.model}</b>${r.model === best ? ' <span class="pill ok">BEST</span>' : ''}</td>
+      <td class="r">${fmt(r.RMSE)}</td>
+      <td class="r">${fmt(r.MAE)}</td>
+      <td class="r">${r['MAPE (%)'].toFixed(2)}</td>
+      <td class="r">${r.R2.toFixed(4)}</td>
+      <td>${verdict(r.model, best)}</td>
+    </tr>`).join('');
+
+  new Chart(document.getElementById('modelsChart'), {
+    type: 'bar',
+    data: { labels: mm.results.map(r => r.model),
+      datasets: [{ data: mm.results.map(r => r.RMSE),
+        backgroundColor: mm.results.map(r => r.model === best ? '#0D9488' : '#CBD5E1'),
+        borderRadius: 7, maxBarThickness: 58 }]},
     options: {
-      maintainAspectRatio: false, interaction: {mode: 'nearest', axis: 'x', intersect: false},
-      scales: {
-        x: {type: 'category', labels: histPts.concat(fPts).map(p => p.x),
-            ticks: {maxTicksLimit: 12, font: {size: 11},
-                    callback: function(v){ return shortLabel(this.getLabelForValue(v)); }},
-            grid: {display: false}},
-        y: {title: {display: true, text: 'Active power (kW)'}, beginAtZero: true}
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ' RMSE ' + fmt(c.raw) + ' MW (lower is better)' } }
       },
-      plugins: {legend: {position: 'top', align: 'end',
-                labels: {filter: item => !item.text.startsWith('__')}}}
+      scales: {
+        x: { grid: { color: '#EEF2F6' }, title: { display: true, text: 'Test RMSE (MW) — lower is better', font: { size: 11 } },
+             ticks: { font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 12 } } }
+      }
     }
   });
 }
-document.getElementById('fc-btn').addEventListener('click', () =>
-  runForecast(document.getElementById('fc-date').value));
-document.getElementById('fc-random').addEventListener('click', () => {
-  const min = new Date('{{ test_start }}').getTime(), max = new Date('{{ test_end }}').getTime();
-  const d = new Date(min + Math.random() * (max - min));
-  document.getElementById('fc-date').value = iso(d);
-  runForecast(iso(d));
+function verdict(model, best){
+  if (model === best) return '✅ Selected for the forecast';
+  if (model === 'Linear Regression') return 'Strong simple baseline';
+  if (model === 'Random Forest') return 'Solid, limited on rising trend';
+  if (model === 'Decision Tree') return 'Overfits the training years';
+  return '';
+}
+
+/* ---------------- bill estimator ---------------- */
+const chips = [50, 100, 150, 200, 250, 300, 400, 600];
+document.getElementById('chips').innerHTML =
+  chips.map(c => `<button class="chip" data-u="${c}">${c} kWh</button>`).join('');
+
+const unitsIn = document.getElementById('units');
+const unitsRange = document.getElementById('unitsRange');
+const kwSel = document.getElementById('kw');
+let billTimer = null;
+
+function setUnits(v){
+  v = Math.max(1, Math.min(5000, Math.round(v) || 1));
+  unitsIn.value = v;
+  unitsRange.value = Math.min(1500, v);
+  updateBill();
+}
+unitsIn.addEventListener('input', () => { unitsRange.value = Math.min(1500, +unitsIn.value || 1); updateBill(); });
+unitsRange.addEventListener('input', () => setUnits(unitsRange.value));
+kwSel.addEventListener('change', updateBill);
+document.getElementById('chips').addEventListener('click', e => {
+  if (e.target.classList.contains('chip')) setUnits(+e.target.dataset.u);
 });
 
-/* ---------------- live forecast ---------------- */
-let liveChart = null;
-async function runLive(values){
-  const r = await fetch('/api/forecast', {method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({values})}).then(r => r.json());
-  const note = document.getElementById('live-note');
-  if (r.error){ note.textContent = 'Error: ' + r.error; return; }
-  note.textContent = '';
-  document.getElementById('live-wrap').classList.remove('hidden');
-  const hist = values.slice(-72).map((v, i) => ({x: 'T-' + (72 - i) + 'h', y: parseFloat(v)}));
-  const fPts = r.points.map((p, i) => ({x: '+' + (i + 1) + 'h', y: p.power_kw}));
-  if (liveChart) liveChart.destroy();
-  liveChart = new Chart(document.getElementById('chart-live'), {
-    type: 'line',
-    data: { datasets: [
-      {label: 'Provided history (last 72 h)', data: hist, borderColor: COL.ink, borderWidth: 1.4,
-       pointRadius: 0, tension: .25},
-      {label: 'Forecast next 24 h', data: fPts, borderColor: COL.red, borderWidth: 2.4,
-       pointRadius: 0, tension: .25, borderDash: [6,3]},
-    ]},
-    options: {maintainAspectRatio: false,
-      scales: {x: {type: 'category', grid: {display: false}},
-               y: {title: {display: true, text: 'Active power (kW)'}, beginAtZero: true}},
-      plugins: {legend: {position: 'top', align: 'end'}}}
-  });
-}
-document.getElementById('live-btn').addEventListener('click', () => {
-  const t = document.getElementById('live-input').value.split(/[,\s\n]+/).filter(x => x.trim() !== '');
-  runLive(t);
-});
-document.getElementById('live-demo').addEventListener('click', async () => {
-  const h = await fetch('/api/history?start=2010-10-01&end=2010-10-20').then(r => r.json());
-  document.getElementById('live-input').value = h.series.map(p => p.power_kw).join(', ');
-  document.getElementById('live-note').textContent =
-    'Loaded 480 real hourly readings (Oct 1-20, 2010). Click "Forecast next 24 h".';
-});
+function updateBill(){
+  clearTimeout(billTimer);
+  billTimer = setTimeout(async () => {
+    const units = +unitsIn.value || 1, kw = +kwSel.value;
+    try {
+      const b = await getJSON('/api/bill', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ units, kw })
+      });
+      document.getElementById('billTotal').textContent = taka(b.total);
+      document.getElementById('billPer').textContent =
+        `for ${fmt(units)} kWh · effective rate ৳${b.per_unit.toFixed(2)} per unit`;
+      document.getElementById('brKw').textContent = kw;
+      document.getElementById('brEnergy').textContent = taka(b.energy_charge);
+      document.getElementById('brDemand').textContent = taka(b.demand_charge);
+      document.getElementById('brVat').textContent = taka(b.vat);
+      document.getElementById('brTotal').textContent = taka(b.total);
 
-/* ---------------- anomaly tab ---------------- */
-let anChart = null;
-async function runAnomaly(dateStr){
-  const end = new Date(dateStr); end.setDate(end.getDate() + 7);
-  const [hist, anom] = await Promise.all([
-    fetch(`/api/history?start=${dateStr}&end=${iso(end)}`).then(r => r.json()),
-    fetch(`/api/anomaly?start=${dateStr}&end=${iso(end)}`).then(r => r.json())]);
-  const aPts = hist.series.map(p => ({x: p.timestamp, y: p.power_kw}));
-  const zMap = {}; anom.points.forEach(p => zMap[p.timestamp] = p.z);
-  const zPts = hist.series.map(p => ({x: p.timestamp, y: zMap[p.timestamp] || 0}));
-  const flagged = hist.series.filter(p => (zMap[p.timestamp] || 0) > 3)
-    .map(p => ({x: p.timestamp, y: p.power_kw}));
-  if (anChart) anChart.destroy();
-  anChart = new Chart(document.getElementById('chart-anomaly'), {
-    data: { datasets: [
-      {type: 'line', label: 'Actual consumption (kW)', data: aPts, yAxisID: 'y',
-       borderColor: COL.ink, borderWidth: 1.4, pointRadius: 0, tension: .25},
-      {type: 'line', label: 'Anomaly score |z|', data: zPts, yAxisID: 'y1',
-       borderColor: COL.purple, borderWidth: 1.6, pointRadius: 0, tension: .25},
-      {type: 'scatter', label: 'Flagged (|z| > 3)', data: flagged, yAxisID: 'y',
-       borderColor: COL.red, backgroundColor: 'rgba(213,94,0,.25)', pointRadius: 5, pointStyle: 'circle'},
-    ]},
-    options: {maintainAspectRatio: false, interaction: {mode: 'nearest', axis: 'x', intersect: false},
-      scales: {
-        x: {type: 'category', labels: aPts.map(p => p.x),
-            ticks: {maxTicksLimit: 10, callback: function(v){ return shortLabel(this.getLabelForValue(v)); }},
-            grid: {display: false}},
-        y: {position: 'left', title: {display: true, text: 'kW'}, beginAtZero: true},
-        y1: {position: 'right', title: {display: true, text: '|z| score'}, beginAtZero: true,
-             suggestedMax: 5, grid: {drawOnChartArea: false}}
-      },
-      plugins: {legend: {position: 'top', align: 'end'},
-        annotation: undefined}}}
-  );
+      /* slab table comes straight from the API */
+      document.querySelector('#slabTable tbody').innerHTML = b.slab_detail.map(s => `
+        <tr class="${s.units > 0 ? 'active' : ''}">
+          <td>${s.slab}</td>
+          <td class="r">৳${s.rate.toFixed(2)}</td>
+          <td class="r">${s.units > 0 ? fmt(s.units) : '—'}</td>
+          <td class="r">${s.units > 0 ? taka(s.charge) : '—'}</td>
+        </tr>`).join('');
+    } catch(err){ console.error(err); }
+  }, 120);
 }
-document.getElementById('an-btn').addEventListener('click', () =>
-  runAnomaly(document.getElementById('an-start').value));
-
-async function loadAnomTable(){
-  const r = await fetch('/api/anomaly/casestudy').then(r => r.json());
-  const tb = document.getElementById('anom-rows');
-  tb.innerHTML = r.events.slice(0, 10).map(e => `<tr>
-    <td>${e.start.replace('T',' ').slice(0,16)}</td>
-    <td>${e.n_hours} h</td>
-    <td class="num">${e.max_z.toFixed(1)}</td>
-    <td class="num">${e.actual_kw.toFixed(2)} kW</td>
-    <td class="num">${e.predicted_kw.toFixed(2)} kW</td>
-    <td><span class="pill ${e.direction}">${e.direction}</span></td></tr>`).join('');
-}
-loadAnomTable();
-
-/* ---------------- models tab ---------------- */
-async function loadModels(){
-  const r = await fetch('/api/models').then(r => r.json());
-  document.querySelector('#fmodels tbody').innerHTML = r.forecasting.map((m, i) => `<tr class="${i===0?'hl':''}">
-    <td>${m.model}${i===0?' <span class="best">&#9679; best</span>':''}</td>
-    <td class="num">${m.rmse.toFixed(4)}</td><td class="num">${m.mae.toFixed(4)}</td>
-    <td class="num">${m.mape.toFixed(2)}</td><td class="num">${m.r2.toFixed(4)}</td>
-    <td class="num">${(m.skill_vs_naive*100).toFixed(1)}%</td></tr>`).join('');
-  const det = r.anomaly_detection.slice().sort((a,b) => b.f1 - a.f1);
-  document.querySelector('#amodels tbody').innerHTML = det.map((m, i) => `<tr class="${i===0?'hl':''}">
-    <td>${m.model}${i===0?' <span class="best">&#9679; best</span>':''}</td>
-    <td class="num">${m.precision.toFixed(3)}</td><td class="num">${m.recall.toFixed(3)}</td>
-    <td class="num">${m.f1.toFixed(3)}</td><td class="num">${m.roc_auc.toFixed(3)}</td>
-    <td class="num">${m.pr_auc.toFixed(3)}</td></tr>`).join('');
-}
-loadModels();
-
-runForecast(document.getElementById('fc-date').value);
-runAnomaly(document.getElementById('an-start').value);
+updateBill();
 </script>
 </body>
 </html>
