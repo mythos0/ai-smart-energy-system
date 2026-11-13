@@ -1,27 +1,29 @@
 """
 AI-Based Smart Electricity Consumption Prediction & Anomaly Detection System
-Single-page Flask web application (Render-ready).
+Single-screen Flask web app (Render-ready). No scrolling needed.
 
 One page:
-  GET  /            dashboard (next-month forecast + BDT bill estimator + anomalies + models)
+  GET  /            single-screen dashboard (fits mobile + desktop, no scroll)
 
 API:
-  GET  /api/health
-  GET  /api/meta
-  GET  /api/daily           full daily demand series
-  GET  /api/forecast        next-month prediction + stats
-  GET  /api/anomalies       detected anomaly events
-  GET  /api/models          model comparison table
-  POST /api/bill            {"units": 250, "kw": 1} -> bill in BDT
+  GET  /api/health    service status
+  GET  /api/meta      dataset + system stats
+  GET  /api/models    model comparison tables (daily + monthly)
+  POST /api/predict   {m1, m2, m3, m4, kw} -> next-month usage, bill in BDT, anomaly check
+  POST /api/bill      {units, kw}          -> standalone bill calculator
 
-Prediction: best of 4 models (Linear Regression, SVM, Random Forest,
-Decision Tree) trained on Dhaka daily electricity demand 2021-2025.
+User input: the last 4 monthly bills (kWh). The monthly model is scale-free
+(ratios to the 3-month average), so the same model works for any consumer.
 Bill: Bangladesh residential tariff (BERC 2026, category LT-A).
-Anomaly detection: residual z-score (|z| > 3).
+Anomaly detection: residual z-score (|z| > 3) on the latest month.
 """
 import json
 import os
+from calendar import month_abbr, month_name
+from datetime import date
+from math import cos, pi, sin
 
+import joblib
 import pandas as pd
 from flask import Flask, jsonify, render_template, request
 
@@ -33,10 +35,15 @@ app = Flask(__name__)
 # ----------------------------------------------------------------- load artifacts
 daily = pd.read_csv(os.path.join(ART, "daily.csv"), parse_dates=["date"])
 fcast = json.load(open(os.path.join(ART, "next_month.json")))
-models_meta = json.load(open(os.path.join(ART, "models.json")))
-test_preds = pd.read_csv(os.path.join(ART, "test_predictions.csv"), parse_dates=["date"])
+models_meta = json.load(open(os.path.join(ART, "models.json")))          # daily models
+monthly_meta = json.load(open(os.path.join(ART, "monthly_meta.json")))   # monthly models
+monthly_models = joblib.load(os.path.join(ART, "monthly_models.joblib"))
+test_preds = pd.read_csv(os.path.join(ART, "test_predictions.csv"))
 
-LAST_DAY = daily["date"].max().strftime("%Y-%m-%d")
+FEATS = monthly_meta["features"]        # ["r1", "r2", "r3", "msin", "mcos"]
+RSTD = monthly_meta["resid_std"]        # out-of-sample residual spread (ratio scale)
+BEST = monthly_meta["best_model"]
+ANOMALY_DAYS = int(test_preds["is_anomaly"].sum())
 
 # ----------------------------------------------------------------- bill (BERC 2026, residential LT-A)
 STEPPED = [(1, 75, 5.26), (76, 200, 8.50), (201, 300, 9.10),
@@ -50,36 +57,82 @@ def bill_bdt(units, kw=1.0):
     if units <= LIFELINE_MAX:
         # lifeline: every unit at the cheap rate
         energy = units * LIFELINE_RATE
-        rows = [{"slab": "Lifeline (1-50)", "rate": LIFELINE_RATE,
-                 "units": units, "charge": round(energy, 2)}]
-        rows += [{"slab": slab_name(lo, hi), "rate": r, "units": 0, "charge": 0.0}
-                 for lo, hi, r in STEPPED]
     else:
         # stepped slabs: each rate applies only to units inside its band
-        energy, rows = 0.0, [{"slab": "Lifeline (1-50)", "rate": LIFELINE_RATE,
-                              "units": 0, "charge": 0.0}]
+        energy, prev = 0.0, 0
         for lo, hi, rate in STEPPED:
             top = hi if hi is not None else units
-            n = max(0, min(units, top) - lo + 1)
-            charge = n * rate
-            energy += charge
-            rows.append({"slab": slab_name(lo, hi), "rate": rate,
-                         "units": n, "charge": round(charge, 2)})
+            energy += max(0, min(units, top) - lo + 1) * rate
+            prev = hi
     demand = DEMAND_CHARGE * kw
     vat = (energy + demand) * VAT
     return {
-        "units": units, "kw": kw,
+        "units": round(units, 1), "kw": kw,
         "energy_charge": round(energy, 2),
         "demand_charge": round(demand, 2),
         "vat": round(vat, 2),
         "total": round(energy + demand + vat, 2),
         "per_unit": round((energy + demand + vat) / units, 2) if units else 0,
-        "slab_detail": rows,
     }
 
 
-def slab_name(lo, hi):
-    return f"{lo}+" if hi is None else f"{lo}-{hi}"
+# ----------------------------------------------------------------- monthly prediction helpers
+def month_back(n, today):
+    """(year, month) of n months before the current month."""
+    m = today.month - n
+    return today.year + (m - 1) // 12, (m - 1) % 12 + 1
+
+
+def feature_row(l1, l2, l3, month_no):
+    """Scale-free feature row from the 3 months before the month being predicted."""
+    base = (l1 + l2 + l3) / 3
+    x = pd.DataFrame([[l1 / base, l2 / base, l3 / base,
+                       sin(2 * pi * month_no / 12), cos(2 * pi * month_no / 12)]],
+                     columns=FEATS)
+    return x, base
+
+
+def predict_user(m1, m2, m3, m4, kw, today):
+    """Predict next-month usage, the bill in BDT, and check the latest month."""
+    cur, nxt = today.month, today.month % 12 + 1
+
+    # 1) anomaly check on the latest month (m4): predict it from m1, m2, m3
+    x4, base3 = feature_row(m3, m2, m1, cur)
+    exp4 = float(monthly_models[BEST].predict(x4)[0]) * base3
+    z4 = (m4 - exp4) / (RSTD * base3)
+    verdict = "high" if z4 > 3 else ("low" if z4 < -3 else "normal")
+
+    # 2) next-month usage from m2, m3, m4 (all four models, best highlighted)
+    x5, base4 = feature_row(m4, m3, m2, nxt)
+    per_model = {name: round(float(m.predict(x5)[0]) * base4, 1)
+                 for name, m in monthly_models.items()}
+    next_kwh = per_model[BEST]
+
+    # 3) predicted bill for the forecast usage
+    bill = bill_bdt(next_kwh, kw)
+
+    # month labels for the UI (3 back, 2 back, last, current, next)
+    _, mo3 = month_back(3, today)
+    _, mo2 = month_back(2, today)
+    _, mo1 = month_back(1, today)
+    nxt_y = today.year + (1 if today.month == 12 else 0)
+
+    return {
+        "labels": {"m1": month_abbr[mo3], "m2": month_abbr[mo2],
+                   "m3": month_abbr[mo1], "m4": month_abbr[cur],
+                   "next": month_abbr[nxt]},
+        "next_name": f"{month_name[nxt]} {nxt_y}",
+        "checked_name": f"{month_name[cur]} {today.year}",
+        "inputs": {"m1": m1, "m2": m2, "m3": m3, "m4": m4, "kw": kw},
+        "next_kwh": next_kwh,
+        "per_model": per_model,
+        "best_model": BEST,
+        "bill": bill,
+        "anomaly": {"actual": round(m4, 1), "expected": round(exp4, 1),
+                    "gap": round(m4 - exp4, 1),
+                    "gap_pct": round((m4 - exp4) / exp4 * 100, 1),
+                    "z": round(z4, 2), "verdict": verdict},
+    }
 
 
 # ----------------------------------------------------------------- page
@@ -91,62 +144,53 @@ def index():
 # ----------------------------------------------------------------- API
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "ok", "page": "single-page dashboard",
+    return jsonify({"status": "ok", "page": "single-screen dashboard",
                     "models": ["Linear Regression", "SVM", "Random Forest", "Decision Tree"],
-                    "best_model": models_meta["best_model"]})
+                    "best_model": BEST})
 
 
 @app.route("/api/meta")
 def meta():
+    daily_best = models_meta["best_model"]
+    daily_rmse = min(r["RMSE"] for r in models_meta["results"])
+    monthly_mape = [r["MAPE (%)"] for r in monthly_meta["results"]
+                    if r["model"] == BEST][0]
     return jsonify({
         "dataset": "Dhaka daily electricity demand & temperature, 2021-2025 (Kaggle)",
         "daily_rows": int(len(daily)),
-        "last_day": LAST_DAY,
-        "target": "daily demand (MW)",
-        "best_model": models_meta["best_model"],
+        "last_day": daily["date"].max().strftime("%Y-%m-%d"),
+        "daily_model": daily_best,
+        "daily_rmse_mw": daily_rmse,
         "test_period": models_meta["test_period"],
-        "next_month": fcast["month_name"],
+        "anomaly_days_2025": ANOMALY_DAYS,
+        "monthly_model": BEST,
+        "monthly_mape_pct": monthly_mape,
+        "grid_forecast": {"month": fcast["month_name"],
+                          "total_gwh": fcast["stats"]["total_gwh"],
+                          "yoy_pct": fcast["stats"]["yoy_pct"]},
         "tariff": "Bangladesh residential (BERC 2026, LT-A), 5% VAT included",
     })
 
 
-@app.route("/api/daily")
-def api_daily():
-    seg = daily[["date", "demand_mw", "temp_c"]]
-    return jsonify({"series": [{"date": d.strftime("%Y-%m-%d"),
-                                "demand_mw": float(v), "temp_c": float(t)}
-                               for d, v, t in seg.itertuples(index=False)]})
-
-
-@app.route("/api/forecast")
-def api_forecast():
-    out = dict(fcast)
-    tail = daily[["date", "demand_mw"]].tail(90)
-    out["history_tail"] = [{"date": d.strftime("%Y-%m-%d"), "demand_mw": float(v)}
-                           for d, v in tail.itertuples(index=False)]
-    return jsonify(out)
-
-
-@app.route("/api/anomalies")
-def api_anomalies():
-    seg = test_preds[test_preds["is_anomaly"] == 1].copy()
-    seg = seg.reindex(seg["z"].abs().sort_values(ascending=False).index)
-    series = [{"date": d.strftime("%Y-%m-%d"), "actual_mw": float(a),
-               "expected_mw": float(p), "z": float(z), "is_anomaly": int(i)}
-              for d, a, p, z, i in test_preds[["date", "actual_mw", "predicted_mw", "z",
-                                               "is_anomaly"]].itertuples(index=False)]
-    return jsonify({"method": "residual z-score, |z| > 3",
-                    "events": [
-        {"date": d.strftime("%Y-%m-%d"), "actual_mw": float(a), "expected_mw": float(p),
-         "gap_mw": round(a - p, 1), "z": float(z),
-         "type": "unusual HIGH" if z > 0 else "unusual LOW"}
-        for d, a, p, z in seg[["date", "actual_mw", "predicted_mw", "z"]].itertuples(index=False)],
-        "series": series})
-
-
 @app.route("/api/models")
 def api_models():
-    return jsonify(models_meta)
+    return jsonify({"daily_demand_model": models_meta,
+                    "monthly_user_model": monthly_meta})
+
+
+@app.route("/api/predict", methods=["POST"])
+def api_predict():
+    body = request.get_json(silent=True) or {}
+    try:
+        m1, m2, m3, m4 = (float(body.get(k, 0)) for k in ("m1", "m2", "m3", "m4"))
+        kw = float(body.get("kw", 1))
+    except (TypeError, ValueError):
+        return jsonify({"error": "m1, m2, m3, m4 and kw must be numbers"}), 400
+    if any(not (1 <= v <= 50000) for v in (m1, m2, m3, m4)):
+        return jsonify({"error": "each month must be 1 - 50000 kWh"}), 400
+    if not (1 <= kw <= 50):
+        return jsonify({"error": "kw must be 1 - 50"}), 400
+    return jsonify(predict_user(m1, m2, m3, m4, kw, date.today()))
 
 
 @app.route("/api/bill", methods=["POST"])

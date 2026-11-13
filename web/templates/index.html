@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>AI Smart Energy System — Bangladesh</title>
-<meta name="description" content="Next-month electricity prediction, BDT bill estimator and anomaly detection for Dhaka, Bangladesh.">
+<meta name="description" content="Enter your last 4 monthly bills — get next month's electricity usage, the bill in BDT and an anomaly check. One screen, no scrolling.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -12,497 +12,301 @@
 :root{
   --bg:#F5F7FA; --card:#FFFFFF; --line:#E2E8F0; --ink:#0F172A; --mut:#5B6B7F;
   --teal:#0D9488; --teal-soft:#CCFBF1; --amber:#C05F0A; --amber-soft:#FEF3E2;
-  --red:#DC2626; --red-soft:#FEE2E2;
+  --red:#DC2626; --red-soft:#FEE2E2; --ok:#16A34A;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
-h1,h2,h3{font-family:'Sora','Inter',sans-serif;letter-spacing:-.02em}
-a{color:var(--teal);text-decoration:none}
-.container{max-width:1080px;margin:0 auto;padding:0 20px}
+html,body{height:100%;overflow:hidden}
+body{
+  height:100vh;height:100dvh;           /* one screen, never scrolls */
+  display:flex;flex-direction:column;
+  font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45;
+}
+h1,h2{font-family:'Sora','Inter',sans-serif;letter-spacing:-.02em}
 
-/* header */
-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-.nav{display:flex;align-items:center;justify-content:space-between;height:62px}
-.brand{display:flex;align-items:center;gap:10px;font-family:'Sora';font-weight:700;font-size:17px;color:var(--ink)}
-.brand .dot{width:30px;height:30px;border-radius:9px;background:var(--teal);color:#fff;display:grid;place-items:center;font-size:15px}
-.navlinks{display:flex;gap:22px;font-size:14px;font-weight:500}
-.navlinks a{color:var(--mut)}.navlinks a:hover{color:var(--teal)}
-@media(max-width:760px){.navlinks{display:none}}
+/* ---------- header ---------- */
+header{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  height:clamp(42px,5.4dvh,54px);padding:0 clamp(12px,2.5vw,26px);
+  background:#fff;border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:8px;font-family:'Sora';font-weight:700;font-size:clamp(14px,1.7vw,17px);white-space:nowrap}
+.brand .dot{width:clamp(24px,3.4dvh,30px);height:clamp(24px,3.4dvh,30px);border-radius:8px;background:var(--teal);color:#fff;display:grid;place-items:center;font-size:clamp(12px,1.7dvh,15px)}
+.chips{display:flex;gap:6px;min-width:0}
+.chip{background:var(--teal-soft);color:#0F766E;font-size:clamp(9.5px,1.05vw,12px);font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap}
+@media(max-width:520px){ .chip.data{display:none} }
 
-/* hero */
-.hero{padding:46px 0 26px}
-.hero .tag{display:inline-flex;align-items:center;gap:7px;background:var(--teal-soft);color:#0F766E;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:99px;margin-bottom:16px}
-.hero .tag b{font-weight:700}
-.hero h1{font-size:clamp(26px,4.2vw,38px);line-height:1.16;max-width:840px}
-.hero p.sub{margin-top:12px;color:var(--mut);font-size:15.5px;max-width:760px}
-.badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
-.badge{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 13px;font-size:13px;color:var(--mut)}
-.badge b{color:var(--ink)}
+/* ---------- main grid ---------- */
+main{
+  flex:1 1 auto;min-height:0;
+  display:grid;gap:clamp(8px,1.3dvh,14px);
+  padding:clamp(8px,1.3dvh,14px) clamp(12px,2.5vw,26px) clamp(6px,1dvh,12px);
+}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px}
+@media(min-width:900px){ main{grid-template-columns:clamp(280px,26vw,340px) minmax(0,1fr)} }
+@media(max-width:899px){ main{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)} }
 
-/* kpis */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:26px 0 8px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px 15px}
-.kpi .lab{font-size:12.5px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
-.kpi .val{font-family:'Sora';font-size:27px;font-weight:700;margin-top:6px}
-.kpi .note{font-size:12.5px;color:var(--mut);margin-top:3px}
-.kpi.hl{background:linear-gradient(135deg,#0D9488,#0F766E);border:none;color:#fff}
-.kpi.hl .lab,.kpi.hl .note{color:rgba(255,255,255,.8)}
+/* ---------- input panel ---------- */
+.side{padding:clamp(10px,1.8dvh,18px);display:flex;flex-direction:column;gap:clamp(4px,.7dvh,10px);min-height:0;overflow:hidden}
+.side-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.side-head h2{font-size:clamp(15px,2dvh,19px)}
+.side-head .unit{color:#0F766E;font-weight:700;font-size:clamp(10px,1.2dvh,12px);background:var(--teal-soft);padding:2px 9px;border-radius:99px}
+.hint{font-size:clamp(10.5px,1.25dvh,12.5px);color:var(--mut)}
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(5px,1vw,9px)}
+.mgrid label{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mgrid b{font-size:clamp(10px,1.2dvh,11.5px);color:var(--mut);font-weight:600;text-align:center}
+.mgrid input{
+  width:100%;padding:clamp(6px,1dvh,9px) 2px;text-align:center;
+  font:600 clamp(13px,1.6dvh,15px)/1.2 'Inter',sans-serif;color:var(--ink);
+  border:1.5px solid var(--line);border-radius:9px;background:#fff;
+}
+.mgrid input:focus{outline:2px solid var(--teal);border-color:var(--teal)}
+.mgrid input::-webkit-outer-spin-button,.mgrid input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.mgrid input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.controls{display:flex;gap:8px;align-items:flex-end;margin-top:clamp(2px,.5dvh,6px)}
+.kw{display:flex;flex-direction:column;gap:3px;font-size:clamp(9.5px,1.15dvh,10.5px);color:var(--mut);font-weight:600}
+.kw select{padding:clamp(6px,1dvh,9px) 4px;border:1.5px solid var(--line);border-radius:9px;font:600 clamp(12px,1.5dvh,13.5px) 'Inter',sans-serif;color:var(--ink);background:#fff}
+#go{
+  flex:1;background:var(--teal);color:#fff;border:none;border-radius:10px;
+  padding:clamp(8px,1.25dvh,11px);font:700 clamp(13px,1.7dvh,15px) 'Sora',sans-serif;cursor:pointer;transition:.15s;
+}
+#go:hover{background:#0F766E}
+#go:disabled{opacity:.6;cursor:wait}
+.ghost{background:none;border:1.5px dashed var(--line);color:var(--mut);border-radius:9px;padding:clamp(4px,.6dvh,6px);font:600 clamp(10.5px,1.25dvh,12px) 'Inter',sans-serif;cursor:pointer}
+.ghost:hover{border-color:var(--teal);color:var(--teal)}
+.err{color:var(--red);font-size:clamp(10.5px,1.25dvh,12px);display:none}
+.tariff{margin-top:auto;font-size:clamp(9.5px,1.15dvh,11px);color:var(--mut);border-top:1px solid var(--line);padding-top:clamp(6px,1dvh,10px)}
+.tariff b{color:var(--ink)}
+@media(max-width:899px){ .tariff{display:none} }
 
-/* sections */
-section{padding:34px 0 6px}
-.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
-.sec-head h2{font-size:22px}
-.sec-head .kicker{color:var(--teal);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.08em}
-.sec-head .hint{color:var(--mut);font-size:13.5px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
-.chart-wrap{position:relative;height:330px}
-.chart-wrap.sm{height:250px}
-.footnote{font-size:12.5px;color:var(--mut);margin-top:12px}
-.footnote b{color:var(--ink)}
+/* ---------- results ---------- */
+.right{display:flex;flex-direction:column;gap:clamp(7px,1.1dvh,13px);min-height:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(6px,1vw,12px)}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:clamp(8px,1.3dvh,14px) clamp(10px,1.3vw,16px);min-width:0}
+.stat .l{font-size:clamp(9.5px,1.15dvh,12px);font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .v{font-family:'Sora',sans-serif;font-weight:800;font-size:clamp(17px,2.55dvh,27px);margin-top:2px;white-space:nowrap}
+.stat .s{font-size:clamp(9.5px,1.15dvh,11.5px);color:var(--mut);margin-top:2px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.stat.hl{background:linear-gradient(135deg,#0D9488,#0F766E);border:none;color:#fff}
+.stat.hl .l,.stat.hl .s{color:rgba(255,255,255,.82)}
+.stat.am .v{color:var(--amber)}
+.stat .v.ok{color:var(--ok)}
+.stat .v.bad{color:var(--red)}
+.chartbox{flex:1 1 auto;min-height:78px;position:relative;padding:clamp(6px,.9dvh,12px)}
+.fnotes{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fn{font-size:clamp(9.5px,1.2dvh,11.5px);color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fn.sys{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35}
+.fn b{color:var(--ink)}
+.fn .best{color:#0F766E}
 
-/* forecast stats row */
-.fstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:16px}
-.fstat{background:#F8FAFC;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.fstat .l{font-size:12px;color:var(--mut);font-weight:600}
-.fstat .v{font-family:'Sora';font-weight:700;font-size:18px;margin-top:2px}
+/* ---------- footer ---------- */
+footer{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  height:clamp(26px,3.6dvh,36px);padding:0 clamp(12px,2.5vw,26px);
+  background:#fff;border-top:1px solid var(--line);font-size:clamp(9.5px,1.15dvh,11.5px);color:var(--mut);
+}
+footer .who{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+footer a{color:var(--teal);font-weight:600;white-space:nowrap}
 
-/* bill */
-.bill-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-@media(max-width:820px){.bill-grid{grid-template-columns:1fr}}
-.ctl-lab{font-size:13px;font-weight:600;color:var(--mut);margin:14px 0 7px}
-.ctl-lab:first-child{margin-top:0}
-.unit-row{display:flex;align-items:center;gap:12px}
-input[type=number]{width:130px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font:600 16px 'Inter';color:var(--ink)}
-input[type=number]:focus{outline:2px solid var(--teal);border-color:var(--teal)}
-.suffix{color:var(--mut);font-size:14px;font-weight:600}
-input[type=range]{width:100%;accent-color:var(--teal)}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{background:#fff;border:1.5px solid var(--line);border-radius:99px;padding:6px 13px;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;transition:.15s}
-.chip:hover{border-color:var(--teal);color:var(--teal)}
-select{padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;font:600 14px 'Inter';color:var(--ink);background:#fff}
-.total-card{background:linear-gradient(135deg,#0D9488,#0F766E);border-radius:16px;color:#fff;padding:20px 22px}
-.total-card .l{font-size:13px;color:rgba(255,255,255,.85);font-weight:600}
-.total-card .v{font-family:'Sora';font-size:38px;font-weight:800;margin-top:4px;letter-spacing:-.02em}
-.total-card .d{font-size:12.5px;color:rgba(255,255,255,.85);margin-top:6px}
-.breakdown{margin-top:14px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.br-row{display:flex;justify-content:space-between;padding:11px 16px;font-size:14px;border-bottom:1px solid var(--line);background:#fff}
-.br-row:last-child{border-bottom:none;background:#F8FAFC;font-weight:700}
-.br-row span:first-child{color:var(--mut)}
-.br-row.total span:first-child{color:var(--ink)}
-.slab-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:14px}
-.slab-table th{background:#F1F5F9;text-align:left;padding:9px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
-.slab-table td{padding:9px 12px;border-bottom:1px solid var(--line)}
-.slab-table tr:last-child td{border-bottom:none}
-.slab-table tr.active{background:var(--teal-soft);font-weight:700}
-.slab-table .r{text-align:right;font-variant-numeric:tabular-nums}
-
-/* tables */
-.tbl{width:100%;border-collapse:collapse;font-size:14px}
-.tbl th{background:#F1F5F9;text-align:left;padding:11px 14px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
-.tbl td{padding:11px 14px;border-bottom:1px solid var(--line)}
-.tbl tr:last-child td{border-bottom:none}
-.tbl .r{text-align:right;font-variant-numeric:tabular-nums}
-.tbl tr.best{background:var(--teal-soft)}
-.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
-.pill.high{background:var(--red-soft);color:var(--red)}
-.pill.low{background:var(--amber-soft);color:var(--amber)}
-.pill.ok{background:var(--teal-soft);color:#0F766E}
-
-/* footer */
-footer{margin-top:44px;border-top:1px solid var(--line);background:#fff;padding:30px 0 38px;color:var(--mut);font-size:13.5px}
-footer .cols{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
-footer h3{font-size:14px;color:var(--ink);margin-bottom:8px}
-footer ul{list-style:none}
-footer li{margin:4px 0}
+/* ---------- very short screens (landscape phones) ---------- */
+@media(max-height:560px){
+  .hint{display:none}
+  .fn.sys{display:none}
+  .chips{display:none}
+}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="container nav">
-    <div class="brand"><span class="dot">⚡</span> AI Smart Energy System</div>
-    <nav class="navlinks">
-      <a href="#forecast">Forecast</a>
-      <a href="#bill">Bill in BDT</a>
-      <a href="#anomalies">Anomalies</a>
-      <a href="#models">Models</a>
-      <a href="/api/health" target="_blank">API</a>
-    </nav>
+  <div class="brand"><span class="dot">⚡</span>AI Smart Energy System</div>
+  <div class="chips">
+    <span class="chip">4 models</span>
+    <span class="chip data">Dhaka 2021–25</span>
+    <span class="chip" id="chipBest">…</span>
   </div>
 </header>
 
-<main class="container">
+<main>
 
-  <!-- hero -->
-  <div class="hero">
-    <span class="tag">🇧🇩 <b>Bangladesh</b> · Dhaka daily electricity demand 2021–2025</span>
-    <h1>Next-month electricity prediction, bill estimate in BDT &amp; anomaly detection</h1>
-    <p class="sub">Four machine-learning models — Linear Regression, SVM, Random Forest and Decision Tree —
-    trained on daily demand and temperature data of Dhaka. The best model predicts next month's usage,
-    estimates the household bill with the official 2026 BERC tariff, and flags unusual demand days.</p>
-    <div class="badges" id="badges"></div>
-    <div class="kpis" id="kpis"></div>
-  </div>
-
-  <!-- forecast -->
-  <section id="forecast">
-    <div class="sec-head">
-      <div>
-        <div class="kicker">Prediction</div>
-        <h2 id="fTitle">Next Month Forecast</h2>
+  <!-- input -->
+  <section class="card side">
+    <div class="side-head"><h2>Your usage</h2><span class="unit">kWh</span></div>
+    <p class="hint">Enter the units from your last 4 monthly electricity bills, then press Predict.</p>
+    <form id="f">
+      <div class="mgrid">
+        <label><b id="lb1">…</b><input id="m1" type="number" min="1" max="50000" step="1" value="220" inputmode="numeric" required></label>
+        <label><b id="lb2">…</b><input id="m2" type="number" min="1" max="50000" step="1" value="210" inputmode="numeric" required></label>
+        <label><b id="lb3">…</b><input id="m3" type="number" min="1" max="50000" step="1" value="230" inputmode="numeric" required></label>
+        <label><b id="lb4">…</b><input id="m4" type="number" min="1" max="50000" step="1" value="240" inputmode="numeric" required></label>
       </div>
-      <div class="hint">Last 90 days of real demand + 30-day model forecast</div>
-    </div>
-    <div class="card">
-      <div class="chart-wrap"><canvas id="forecastChart"></canvas></div>
-      <div class="fstats" id="fstats"></div>
-      <p class="footnote" id="fNote"></p>
-    </div>
-  </section>
-
-  <!-- bill -->
-  <section id="bill">
-    <div class="sec-head">
-      <div>
-        <div class="kicker">Bill Estimator</div>
-        <h2>Predicted Electricity Bill in BDT</h2>
-      </div>
-      <div class="hint">Official Bangladesh residential tariff — BERC 2026 (LT-A)</div>
-    </div>
-    <div class="card">
-      <div class="bill-grid">
-        <div>
-          <div class="ctl-lab">Monthly electricity usage (units / kWh)</div>
-          <div class="unit-row">
-            <input type="number" id="units" min="1" max="5000" value="250">
-            <span class="suffix">kWh</span>
-          </div>
-          <div style="margin-top:12px"><input type="range" id="unitsRange" min="10" max="1500" value="250" step="5"></div>
-          <div class="ctl-lab">Quick presets</div>
-          <div class="chips" id="chips"></div>
-          <div class="ctl-lab">Sanctioned load</div>
+      <div class="controls">
+        <label class="kw">Load
           <select id="kw">
-            <option value="1" selected>1 kW (typical home)</option>
+            <option value="1" selected>1 kW</option>
             <option value="2">2 kW</option>
             <option value="3">3 kW</option>
             <option value="5">5 kW</option>
           </select>
-          <p class="footnote">Lifeline rate ৳4.63/unit applies only when the monthly total is 50 units or less.
-          Otherwise the stepped slab rates on the right are used. Demand charge ৳42 per kW and 5% VAT are included.</p>
-        </div>
-        <div>
-          <div class="total-card">
-            <div class="l">Estimated monthly bill</div>
-            <div class="v" id="billTotal">৳ —</div>
-            <div class="d" id="billPer">—</div>
-          </div>
-          <div class="breakdown">
-            <div class="br-row"><span>Energy charge (slabs)</span><span id="brEnergy">—</span></div>
-            <div class="br-row"><span>Demand charge (<span id="brKw">1</span> kW)</span><span id="brDemand">—</span></div>
-            <div class="br-row"><span>VAT (5%)</span><span id="brVat">—</span></div>
-            <div class="br-row total"><span>Total payable</span><span id="brTotal">—</span></div>
-          </div>
-          <table class="slab-table" id="slabTable">
-            <thead><tr><th>Slab (units)</th><th class="r">Rate</th><th class="r">Units billed</th><th class="r">Charge</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        </label>
+        <button type="submit" id="go">Predict</button>
       </div>
-    </div>
+    </form>
+    <button type="button" id="sample" class="ghost">Reset to sample data</button>
+    <p class="err" id="err"></p>
+    <p class="tariff">Tariff: <b>BERC 2026</b> residential (LT-A) · lifeline ৳4.63 · slabs ৳5.26–17.35 · demand charge ৳42/kW · <b>VAT 5%</b></p>
   </section>
 
-  <!-- anomalies -->
-  <section id="anomalies">
-    <div class="sec-head">
-      <div>
-        <div class="kicker">Monitoring</div>
-        <h2>Anomaly Detection</h2>
+  <!-- results -->
+  <section class="right">
+    <div class="stats">
+      <div class="stat hl">
+        <div class="l" id="s1l">Next month</div>
+        <div class="v" id="s1v">—</div>
+        <div class="s" id="s1s">predicted usage</div>
       </div>
-      <div class="hint">Test year 2025 — days when demand deviated far from the model's expectation</div>
+      <div class="stat am">
+        <div class="l">Predicted bill</div>
+        <div class="v" id="s2v">৳ —</div>
+        <div class="s" id="s2s">incl. demand charge + 5% VAT</div>
+      </div>
+      <div class="stat">
+        <div class="l" id="s3l">Latest month check</div>
+        <div class="v" id="s3v">—</div>
+        <div class="s" id="s3s">anomaly detection</div>
+      </div>
     </div>
-    <div class="card">
-      <div class="chart-wrap"><canvas id="anomalyChart"></canvas></div>
-      <div style="margin-top:16px;overflow-x:auto">
-        <table class="tbl" id="anTable">
-          <thead><tr><th>Date</th><th class="r">Actual (MW)</th><th class="r">Expected (MW)</th><th class="r">Gap (MW)</th><th class="r">z-score</th><th>Classification</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <p class="footnote" id="anNote"></p>
-    </div>
-  </section>
-
-  <!-- models -->
-  <section id="models">
-    <div class="sec-head">
-      <div>
-        <div class="kicker">Evaluation</div>
-        <h2>Model Comparison</h2>
-      </div>
-      <div class="hint">Trained on 2021–2024 · tested on 2025 (out-of-sample)</div>
-    </div>
-    <div class="card">
-      <div style="overflow-x:auto">
-        <table class="tbl" id="mTable">
-          <thead><tr><th>Model</th><th class="r">RMSE (MW)</th><th class="r">MAE (MW)</th><th class="r">MAPE (%)</th><th class="r">R²</th><th>Verdict</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="chart-wrap sm" style="margin-top:18px"><canvas id="modelsChart"></canvas></div>
+    <div class="chartbox card"><canvas id="chart"></canvas></div>
+    <div class="fnotes">
+      <div class="fn" id="perModel">All models (kWh): …</div>
+      <div class="fn sys" id="sysNote">Loading system info…</div>
     </div>
   </section>
 
 </main>
 
 <footer>
-  <div class="container cols">
-    <div style="max-width:380px">
-      <h3>⚡ AI Smart Energy System</h3>
-      <p>Final-year project, Department of CSE, Dhaka International University.
-      Next-month prediction, bill estimation and anomaly monitoring for the Bangladeshi power system.</p>
-    </div>
-    <div>
-      <h3>Team</h3>
-      <ul>
-        <li>Tamim · Emon · Montasir</li>
-        <li>Muntaha · Shorov</li>
-      </ul>
-    </div>
-    <div>
-      <h3>Sources</h3>
-      <ul>
-        <li><a href="https://www.kaggle.com/datasets/imuanzumanakhi/dhaka-2021-25-electricity-and-temperature-data" target="_blank" rel="noopener">Dhaka 2021–25 electricity dataset (Kaggle)</a></li>
-        <li><a href="https://www.kaggle.com/code/tamim6/ai-smart-energy-system-training-pipeline" target="_blank" rel="noopener">Training notebook (Kaggle)</a></li>
-        <li>Tariff: BERC residential LT-A, 2026</li>
-      </ul>
-    </div>
-  </div>
+  <span class="who">CSE final-year project · Dhaka International University — Tamim · Emon · Montasir · Muntaha · Shorov</span>
+  <a href="https://www.kaggle.com/code/tamim6/ai-smart-energy-system-training-pipeline" target="_blank" rel="noopener">Kaggle notebook ↗</a>
 </footer>
 
 <script>
-const fmt = n => Math.round(n).toLocaleString('en-US');
-const taka = n => '৳ ' + n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const $ = id => document.getElementById(id);
+const taka = n => '৳' + Math.round(n).toLocaleString('en-US');
+const SHORT = {'Linear Regression':'LR','SVM':'SVM','Random Forest':'RF','Decision Tree':'DT'};
 
-async function getJSON(url, opts){
-  const r = await fetch(url, opts);
-  if(!r.ok) throw new Error(url + ' ' + r.status);
+/* month labels: m1 = 3 months back ... m4 = current month */
+(function(){
+  const lab = n => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - n);
+                     return d.toLocaleString('en', {month:'short'}); };
+  ['lb1','lb2','lb3','lb4'].forEach((id, i) => $(id).textContent = lab(3 - i));
+})();
+
+async function postJSON(url, body){
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+                              body: JSON.stringify(body)});
+  if(!r.ok){ const e = await r.json().catch(() => ({}));
+             throw new Error(e.error || ('HTTP ' + r.status)); }
   return r.json();
 }
-function niceDate(iso){
-  const d = new Date(iso + 'T00:00:00');
-  return isNaN(d) ? iso : d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-}
+function showErr(m){ const e = $('err'); e.textContent = m; e.style.display = 'block'; }
+function hideErr(){ $('err').style.display = 'none'; }
 
-/* ---------------- boot ---------------- */
-Promise.all([getJSON('/api/forecast'), getJSON('/api/meta'), getJSON('/api/anomalies'), getJSON('/api/models')])
-  .then(([fc, meta, an, mm]) => {
-    renderHero(meta, mm, fc);
-    renderForecast(fc);
-    renderAnomalies(an);
-    renderModels(mm);
-  })
-  .catch(e => console.error(e));
-
-/* ---------------- hero ---------------- */
-function renderHero(meta, mm, fc){
-  const best = mm.best_model;
-  const rmse = mm.results.find(r => r.model === best).RMSE;
-  document.getElementById('badges').innerHTML = `
-    <div class="badge">🏆 Best model: <b>${best}</b></div>
-    <div class="badge">Test RMSE <b>${fmt(rmse)} MW</b></div>
-    <div class="badge">Data: <b>${fmt(meta.daily_rows)} days</b> (until ${meta.last_day})</div>
-    <div class="badge">Predicting: <b>${meta.next_month}</b></div>`;
-
-  const s = fc.stats;
-  document.getElementById('kpis').innerHTML = `
-    <div class="kpi hl"><div class="lab">Predicted usage — ${fc.month_name}</div><div class="val">${fmt(s.total_gwh)} GWh</div><div class="note">total electricity for next month</div></div>
-    <div class="kpi"><div class="lab">Average load</div><div class="val">${fmt(s.avg_mw)} MW</div><div class="note">daily average demand</div></div>
-    <div class="kpi"><div class="lab">Peak day</div><div class="val">${fmt(s.peak_mw)} MW</div><div class="note">${niceDate(s.peak_date)}</div></div>
-    <div class="kpi"><div class="lab">vs same month last year</div><div class="val">${s.yoy_pct > 0 ? '+' : ''}${s.yoy_pct}%</div><div class="note">${fmt(s.last_year_gwh)} GWh in 2024</div></div>`;
-
-  document.getElementById('fTitle').textContent = `Next Month Forecast — ${fc.month_name}`;
-  const kernel = best === 'SVM' ? ' (RBF kernel, scaled inputs)' : '';
-  document.getElementById('fNote').innerHTML =
-    `Model: <b>${best}</b>${kernel}. The forecast is built day by day — each prediction is fed back as input for
-    the next day. Future temperature is set to the average ${fc.month_name.split(' ')[0]} temperature of past years.
-    The shaded band shows ±${fmt(s.rmse_mw)} MW (one test RMSE).`;
-}
-
-/* shared chart options */
-function chartOpts(yTitle){
-  return {
-    responsive: true, maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false },
-    plugins: {
-      legend: { position: 'top', align: 'end', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, font: { size: 11.5 } } },
-      tooltip: { callbacks: { title: it => niceDate(it[0].label) } }
-    },
-    scales: {
-      x: { ticks: { maxTicksLimit: 10, maxRotation: 0, autoSkip: true, font: { size: 10.5 } }, grid: { display: false } },
-      y: { title: { display: true, text: yTitle, font: { size: 11 } }, grid: { color: '#EEF2F6' },
-           ticks: { callback: v => fmt(v), font: { size: 10.5 } } }
-    }
-  };
-}
-
-/* ---------------- forecast chart ---------------- */
-function renderForecast(fc){
-  const hist = fc.history_tail, fut = fc.days, s = fc.stats;
-  const labels = hist.map(h => h.date).concat(fut.map(f => f.date));
-  const pad = hist.map(() => null);
-  const actual = hist.map(h => h.demand_mw).concat(fut.map(() => null));
-  const predicted = pad.concat(fut.map(f => f.demand_mw));
-  const bandLo = pad.concat(fut.map(f => +(f.demand_mw - s.rmse_mw).toFixed(1)));
-  const bandHi = pad.concat(fut.map(f => +(f.demand_mw + s.rmse_mw).toFixed(1)));
-
-  document.getElementById('fstats').innerHTML = `
-    <div class="fstat"><div class="l">Total usage</div><div class="v">${fmt(s.total_gwh)} GWh</div></div>
-    <div class="fstat"><div class="l">Average load</div><div class="v">${fmt(s.avg_mw)} MW</div></div>
-    <div class="fstat"><div class="l">Peak day</div><div class="v">${fmt(s.peak_mw)} MW</div></div>
-    <div class="fstat"><div class="l">vs last year</div><div class="v">${s.yoy_pct > 0 ? '+' : ''}${s.yoy_pct}%</div></div>`;
-
-  new Chart(document.getElementById('forecastChart'), {
-    type: 'line',
-    data: { labels, datasets: [
-      /* band: fill between lower (index 0) and upper (index 1) */
-      { label: '± RMSE band', data: bandLo, borderColor: 'transparent', pointRadius: 0, borderWidth: 0,
-        backgroundColor: 'rgba(192,95,10,.12)', fill: 1 },
-      { label: '_bandHi', data: bandHi, borderColor: 'transparent', pointRadius: 0, borderWidth: 0 },
-      { label: 'Actual demand (last 90 days)', data: actual, borderColor: '#334155', pointRadius: 0, borderWidth: 2, tension: .25 },
-      { label: 'Model forecast', data: predicted, borderColor: '#C05F0A', pointRadius: 0, borderWidth: 2.5, tension: .25 },
-    ]},
-    options: chartOpts('Demand (MW)')
-  });
-}
-
-/* ---------------- anomalies ---------------- */
-function renderAnomalies(an){
-  const S = an.series;
-  const labels = S.map(p => p.date);
-  const norm = S.map(p => p.is_anomaly ? null : p.actual_mw);
-  const anomPts = S.map(p => p.is_anomaly ? p.actual_mw : null);
-  const expected = S.map(p => p.expected_mw);
-
-  new Chart(document.getElementById('anomalyChart'), {
-    type: 'line',
-    data: { labels, datasets: [
-      { label: 'Actual demand', data: norm, borderColor: '#334155', pointRadius: 0, borderWidth: 2, tension: .2 },
-      { label: 'Model expected', data: expected, borderColor: '#0D9488', pointRadius: 0, borderWidth: 1.6, tension: .2, borderDash: [5, 3] },
-      { label: 'Anomaly', data: anomPts, borderColor: '#DC2626', backgroundColor: '#DC2626', pointRadius: 5, pointHoverRadius: 7, showLine: false },
-    ]},
-    options: chartOpts('Demand (MW)')
-  });
-
-  document.querySelector('#anTable tbody').innerHTML = an.events.map(e => `
-    <tr>
-      <td><b>${niceDate(e.date)}</b></td>
-      <td class="r">${fmt(e.actual_mw)}</td>
-      <td class="r">${fmt(e.expected_mw)}</td>
-      <td class="r" style="color:${e.gap_mw > 0 ? '#DC2626' : '#C05F0A'}">${e.gap_mw > 0 ? '+' : ''}${fmt(e.gap_mw)}</td>
-      <td class="r">${e.z > 0 ? '+' : ''}${e.z.toFixed(2)}</td>
-      <td><span class="pill ${e.z > 0 ? 'high' : 'low'}">${e.type}</span></td>
-    </tr>`).join('');
-
-  document.getElementById('anNote').innerHTML =
-    `Method: <b>residual z-score</b> — every day the gap between actual and expected demand is standardised,
-    and days beyond <b>|z| &gt; 3</b> are flagged. ${an.events.length} unusual days were found in 2025,
-    including the <b>Eid-ul-Adha</b> demand swing in June (holiday drop seen one day later than the calendar flag).`;
-}
-
-/* ---------------- models ---------------- */
-function renderModels(mm){
-  const best = mm.best_model;
-  document.querySelector('#mTable tbody').innerHTML = mm.results.map(r => `
-    <tr class="${r.model === best ? 'best' : ''}">
-      <td><b>${r.model}</b>${r.model === best ? ' <span class="pill ok">BEST</span>' : ''}</td>
-      <td class="r">${fmt(r.RMSE)}</td>
-      <td class="r">${fmt(r.MAE)}</td>
-      <td class="r">${r['MAPE (%)'].toFixed(2)}</td>
-      <td class="r">${r.R2.toFixed(4)}</td>
-      <td>${verdict(r.model, best)}</td>
-    </tr>`).join('');
-
-  new Chart(document.getElementById('modelsChart'), {
+/* ---------------- chart ---------------- */
+let chart = null;
+function drawChart(labels, values, nextLabel, nextVal, flagIdx){
+  if(chart) chart.destroy();
+  const n = values.length;
+  const bg = values.map((_, i) => i === flagIdx ? '#DC2626' : '#0D9488');
+  chart = new Chart($('chart'), {
     type: 'bar',
-    data: { labels: mm.results.map(r => r.model),
-      datasets: [{ data: mm.results.map(r => r.RMSE),
-        backgroundColor: mm.results.map(r => r.model === best ? '#0D9488' : '#CBD5E1'),
-        borderRadius: 7, maxBarThickness: 58 }]},
+    data: {
+      labels: [...labels, nextLabel],
+      datasets: [
+        { label: 'Your usage', data: [...values, null],
+          backgroundColor: bg, borderRadius: 6, maxBarThickness: 64 },
+        { label: 'Predicted next month', data: [...values.map(() => null), nextVal],
+          backgroundColor: '#C05F0A', borderRadius: 6, maxBarThickness: 64 },
+      ],
+    },
     options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 7 } },
       plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: c => ' RMSE ' + fmt(c.raw) + ' MW (lower is better)' } }
+        legend: { position: 'top', align: 'end',
+                  labels: { boxWidth: 9, boxHeight: 9, usePointStyle: true, font: { size: 10.5 } } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${Math.round(c.raw).toLocaleString()} kWh` } },
       },
       scales: {
-        x: { grid: { color: '#EEF2F6' }, title: { display: true, text: 'Test RMSE (MW) — lower is better', font: { size: 11 } },
-             ticks: { font: { size: 11 } } },
-        y: { grid: { display: false }, ticks: { font: { size: 12 } } }
-      }
-    }
+        x: { grid: { display: false }, ticks: { font: { size: 10.5 } } },
+        y: { grid: { color: '#EEF2F6' },
+             ticks: { font: { size: 10 }, callback: v => v >= 1000 ? (v/1000) + 'k' : v } },
+      },
+    },
   });
 }
-function verdict(model, best){
-  if (model === best) return '✅ Selected for the forecast';
-  if (model === 'Linear Regression') return 'Strong simple baseline';
-  if (model === 'Random Forest') return 'Solid, limited on rising trend';
-  if (model === 'Decision Tree') return 'Overfits the training years';
-  return '';
+
+/* ---------------- render results ---------------- */
+function render(r){
+  const s1v = $('s1v');
+  $('s1l').textContent = 'Next month';
+  s1v.textContent = Math.round(r.next_kwh).toLocaleString('en-US') + ' kWh';
+  $('s1s').textContent = r.next_name + ' · predicted usage';
+
+  $('s2v').textContent = taka(r.bill.total);
+  $('s2s').textContent = '≈ ৳' + r.bill.per_unit.toFixed(2) + ' per unit · incl. VAT';
+
+  const a = r.anomaly, s3v = $('s3v');
+  $('s3l').textContent = 'Check · ' + r.labels.m4;
+  s3v.textContent = a.verdict === 'normal' ? 'Normal'
+                  : a.verdict === 'high' ? 'Unusual HIGH' : 'Unusual LOW';
+  s3v.className = 'v ' + (a.verdict === 'normal' ? 'ok' : 'bad');
+  $('s3s').textContent = 'z = ' + a.z.toFixed(2) + ' · expected ' +
+                         Math.round(a.expected).toLocaleString('en-US') + ' kWh';
+
+  $('perModel').innerHTML = 'All models (kWh): ' +
+    Object.entries(r.per_model).map(([m, k]) =>
+      `<b${m === r.best_model ? ' class="best"' : ''}>${SHORT[m]} ${Math.round(k).toLocaleString('en-US')}</b>`
+    ).join(' · ') + (window.innerWidth < 520 ? '' : ' — best: ' + r.best_model);
+
+  drawChart([r.labels.m1, r.labels.m2, r.labels.m3, r.labels.m4],
+            [r.inputs.m1, r.inputs.m2, r.inputs.m3, r.inputs.m4],
+            r.labels.next, r.next_kwh,
+            a.verdict === 'normal' ? -1 : 3);
 }
 
-/* ---------------- bill estimator ---------------- */
-const chips = [50, 100, 150, 200, 250, 300, 400, 600];
-document.getElementById('chips').innerHTML =
-  chips.map(c => `<button class="chip" data-u="${c}">${c} kWh</button>`).join('');
-
-const unitsIn = document.getElementById('units');
-const unitsRange = document.getElementById('unitsRange');
-const kwSel = document.getElementById('kw');
-let billTimer = null;
-
-function setUnits(v){
-  v = Math.max(1, Math.min(5000, Math.round(v) || 1));
-  unitsIn.value = v;
-  unitsRange.value = Math.min(1500, v);
-  updateBill();
+/* ---------------- predict ---------------- */
+$('f').addEventListener('submit', e => { e.preventDefault(); predict(); });
+async function predict(){
+  const body = { m1: +$('m1').value, m2: +$('m2').value, m3: +$('m3').value,
+                 m4: +$('m4').value, kw: +$('kw').value };
+  if([body.m1, body.m2, body.m3, body.m4].some(v => !isFinite(v) || v < 1 || v > 50000)){
+    showErr('Enter 1 – 50,000 kWh for every month.'); return;
+  }
+  hideErr();
+  const go = $('go'); go.disabled = true; go.textContent = 'Predicting…';
+  try { render(await postJSON('/api/predict', body)); }
+  catch(err){ showErr(err.message || 'Server unreachable'); }
+  finally { go.disabled = false; go.textContent = 'Predict'; }
 }
-unitsIn.addEventListener('input', () => { unitsRange.value = Math.min(1500, +unitsIn.value || 1); updateBill(); });
-unitsRange.addEventListener('input', () => setUnits(unitsRange.value));
-kwSel.addEventListener('change', updateBill);
-document.getElementById('chips').addEventListener('click', e => {
-  if (e.target.classList.contains('chip')) setUnits(+e.target.dataset.u);
+$('sample').addEventListener('click', () => {
+  $('m1').value = 220; $('m2').value = 210; $('m3').value = 230; $('m4').value = 240;
+  predict();
 });
 
-function updateBill(){
-  clearTimeout(billTimer);
-  billTimer = setTimeout(async () => {
-    const units = +unitsIn.value || 1, kw = +kwSel.value;
-    try {
-      const b = await getJSON('/api/bill', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ units, kw })
-      });
-      document.getElementById('billTotal').textContent = taka(b.total);
-      document.getElementById('billPer').textContent =
-        `for ${fmt(units)} kWh · effective rate ৳${b.per_unit.toFixed(2)} per unit`;
-      document.getElementById('brKw').textContent = kw;
-      document.getElementById('brEnergy').textContent = taka(b.energy_charge);
-      document.getElementById('brDemand').textContent = taka(b.demand_charge);
-      document.getElementById('brVat').textContent = taka(b.vat);
-      document.getElementById('brTotal').textContent = taka(b.total);
+/* ---------------- system info ---------------- */
+fetch('/api/meta').then(r => r.json()).then(m => {
+  const chip = $('chipBest');
+  const setChip = () => chip.textContent = 'Best: ' +
+    (window.innerWidth < 520 ? (SHORT[m.monthly_model] || m.monthly_model) : m.monthly_model);
+  setChip();
+  window.addEventListener('resize', setChip);
+  $('sysNote').innerHTML =
+    `System: <b>${m.monthly_model}</b> monthly model · test MAPE <b>${m.monthly_mape_pct}%</b> · ` +
+    `daily model <b>${m.daily_model}</b> · RMSE <b>${m.daily_rmse_mw} MW</b> · ` +
+    `<b>${m.anomaly_days_2025}</b> anomaly days found in 2025 · Dhaka grid forecast ${m.grid_forecast.month}: ` +
+    `<b>${m.grid_forecast.total_gwh.toLocaleString('en-US')} GWh</b> · ${m.daily_rows.toLocaleString('en-US')} days of data`;
+}).catch(() => { $('sysNote').textContent = ''; });
 
-      /* slab table comes straight from the API */
-      document.querySelector('#slabTable tbody').innerHTML = b.slab_detail.map(s => `
-        <tr class="${s.units > 0 ? 'active' : ''}">
-          <td>${s.slab}</td>
-          <td class="r">৳${s.rate.toFixed(2)}</td>
-          <td class="r">${s.units > 0 ? fmt(s.units) : '—'}</td>
-          <td class="r">${s.units > 0 ? taka(s.charge) : '—'}</td>
-        </tr>`).join('');
-    } catch(err){ console.error(err); }
-  }, 120);
-}
-updateBill();
+predict();   /* first paint uses the sample values */
 </script>
 </body>
 </html>

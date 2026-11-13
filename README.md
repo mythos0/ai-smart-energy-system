@@ -2,28 +2,38 @@
 
 Final-year project — Department of CSE, Dhaka International University.
 
-Predicts **next month's electricity usage** for Dhaka, estimates the **household bill in BDT**
-with the official Bangladesh tariff, and **detects anomaly days** — all in one single-page web app.
+**The user enters their last 4 monthly electricity bills (kWh). The web app instantly shows
+the next month's predicted usage, the predicted bill in BDT, and an anomaly check on the
+latest month — all on one single screen, with no scrolling, on mobile and desktop.**
 
 **Live app:** https://ai-smart-energy-system-w4tx.onrender.com
 
-## What it does
+## How it works
 
-| Feature | Details |
+| Step | What happens |
 | --- | --- |
-| Next-month prediction | Day-by-day recursive forecast for the upcoming month (November 2025) |
-| Bill in BDT | Official BERC 2026 residential tariff (LT-A): lifeline + slabs + ৳42/kW demand charge + 5% VAT |
-| Anomaly detection | Residual z-score on test days, flagged when \|z\| > 3 |
-| Model comparison | Linear Regression vs SVM vs Random Forest vs Decision Tree |
+| 1. User input | The user types the units (kWh) of their last 4 monthly bills and their sanctioned load (kW) |
+| 2. Prediction | A scale-free monthly model predicts next month's usage from the last 3 months |
+| 3. Bill in BDT | The official Bangladesh tariff (BERC 2026, residential LT-A) is applied to the predicted usage: lifeline + slabs + ৳42/kW demand charge + 5% VAT |
+| 4. Anomaly check | The latest month is compared with the model's expectation; a residual z-score beyond ±3 is flagged as unusual HIGH or LOW |
 
-## Dataset
+The monthly model is **scale-free**: it works on ratios to the 3-month average, so the same
+model predicts for a single home, a feeder, or the whole city of Dhaka.
 
-[Dhaka 2021–25 Electricity & Temperature data](https://www.kaggle.com/datasets/imuanzumanakhi/dhaka-2021-25-electricity-and-temperature-data)
-— 1,759 days of daily electricity demand (MW) and temperature for Dhaka, Bangladesh (Jan 2021 – Oct 2025).
+## Models (only these four)
 
-## Results
+Linear Regression · SVM (RBF) · Random Forest · Decision Tree
 
-Trained on 2021–2024, tested on 2025 (out-of-sample):
+**Monthly model** (user input, trained on monthly totals 2021–2024, tested on 2025):
+
+| Model | RMSE (GWh) | MAPE (%) | R² |
+| --- | --- | --- | --- |
+| **Random Forest (best)** | **269.0** | **5.04** | **0.562** |
+| SVM | 272.8 | 6.75 | 0.550 |
+| Decision Tree | 285.0 | 5.60 | 0.509 |
+| Linear Regression | 347.5 | 7.79 | 0.270 |
+
+**Daily model** (system-level forecast + anomaly days, trained on 2021–2024, tested on 2025):
 
 | Model | RMSE (MW) | MAE (MW) | MAPE (%) | R² |
 | --- | --- | --- | --- | --- |
@@ -32,27 +42,31 @@ Trained on 2021–2024, tested on 2025 (out-of-sample):
 | Random Forest | 415.7 | 310.5 | 6.48 | 0.635 |
 | Decision Tree | 605.9 | 412.6 | 8.67 | 0.224 |
 
-November 2025 forecast: **3,092 GWh** total, **4,295 MW** average load,
-peak **4,646 MW** on 1 November (−1.8% vs November 2024). Four anomaly days detected in 2025,
+System results: 4 anomaly days detected in the 2025 test year (residual z-score, \|z\| > 3),
 including the Eid-ul-Adha demand swing in June.
+
+## Dataset
+
+[Dhaka 2021–25 Electricity & Temperature data](https://www.kaggle.com/datasets/imuanzumanakhi/dhaka-2021-25-electricity-and-temperature-data)
+— 1,759 days of daily electricity demand (MW) and temperature for Dhaka, Bangladesh (Jan 2021 – Oct 2025).
 
 ## Training notebook (Kaggle)
 
 The full pipeline runs on Kaggle: [ai-smart-energy-system-training-pipeline](https://www.kaggle.com/code/tamim6/ai-smart-energy-system-training-pipeline).
-It loads the dataset, builds simple lag/calendar/temperature features, trains the four models,
-picks the best, forecasts next month, computes the BDT bill table and flags anomalies.
-Outputs are saved to `web/model/` for the web app.
+It loads the dataset, builds simple features, trains the four models, compares them,
+forecasts next month, computes the BDT bill, flags anomalies, and trains the monthly
+user-input model used by the web app. Outputs are saved to `web/model/`.
 
 ## Repository structure
 
 ```
-├── data/                  # Dhaka 2021–2025 dataset (xlsx)
-├── notebooks/             # Kaggle notebook + kernel metadata
-├── web/                   # single-page Flask app (deployed on Render)
-│   ├── app.py             # Flask API + bill calculator
-│   ├── templates/index.html  # the single dashboard page
-│   └── model/             # artifacts produced by the notebook
-└── render.yaml            # Render deploy config
+├── data/                     # Dhaka 2021–2025 dataset (xlsx)
+├── notebooks/                # Kaggle notebook (executed) + kernel metadata
+├── web/                      # single-screen Flask app (deployed on Render)
+│   ├── app.py                # API: predict, bill, meta, models, health
+│   ├── templates/index.html  # the one-screen, no-scroll dashboard
+│   └── model/                # artifacts produced by the notebook
+└── render.yaml               # Render deploy config
 ```
 
 ## Run locally
