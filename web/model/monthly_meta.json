@@ -11,9 +11,9 @@
   "results": [
     {
       "model": "Linear Regression",
-      "RMSE (GWh)": 347.5,
-      "MAPE (%)": 7.79,
-      "R2": 0.2695
+      "RMSE (GWh)": 348.1,
+      "MAPE (%)": 7.89,
+      "R2": 0.267
     },
     {
       "model": "SVM",
